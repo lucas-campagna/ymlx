@@ -1,0 +1,7 @@
+$(#root):
+  app: 0
+
+app:
+  button: "Clicks: $body"
+  hx-get: "/app?body=${$body+1}"
+  hx-swap: "outerHTML"

@@ -1,0 +1,19 @@
+$(#root): app
+
+app:
+  - from: input
+    id: item-desc
+    placeholder: "Item description"
+  - button: "Add"
+    hx-push: "/add-item"
+    hx-vals: 'js:{desc: document.getElementById("item-desc").value}'
+    hx-swap: "afterend"
+    hx-target: "#item-list"
+  - ul:
+      id: "item-list"
+
+add-item:
+  from: sql
+  query: INSERT INTO todo_items (description) VALUES ($desc); SELECT * FROM todo_items;
+  body:
+    li: $description
