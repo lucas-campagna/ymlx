@@ -1,5 +1,7 @@
 use rust_yaml::Value;
 
+use crate::parser::utils::get_field;
+
 pub struct Component {
     pub from: Option<String>,
     pub body: Value,
@@ -8,29 +10,23 @@ pub struct Component {
 
 impl Component {
     pub fn build(value: &Value) -> Component {
-        let key_from =  Value::String(String::from("from"));
-        let key_body =  Value::String(String::from("body"));
-        let from = match value {
-            Value::Mapping(m) =>
-                m.get(&key_from)
-                    .and_then(|v| Some(v.to_string())),
-            _ => None
-            };
-        let body = match value {
-            Value::Mapping(m) =>
-                m.get(&key_body)
-                    .and_then(|v| Some(Value::String(v.to_string())))
-                    .or(Some(Value::Null)),
-            v => Some(v.to_owned()),
-        }.unwrap();
+        let from = get_field(value, "from")
+            .ok()
+            .map(|r| r.to_string());
+        let body = get_field(value, "body")
+            .ok()
+            .map(|r| r.to_owned())
+            .unwrap_or(Value::Null);
         let properties = match value {
             Value::Mapping(m) => {
                 let mut m = m.to_owned();
-                m.swap_remove(&key_body);
-                m.swap_remove(&key_from);
+                if from.is_some() {
+                    m.swap_remove(&Value::String("from".to_owned()));
+                }
+                m.swap_remove(&Value::String("body".to_owned()));
                 Value::Mapping(m)
             },
-            _ => Value::Null,
+            v => v.to_owned(),
         };
         Component { from, body, properties }
     }
