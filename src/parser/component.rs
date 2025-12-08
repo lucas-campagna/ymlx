@@ -28,12 +28,13 @@ impl Component {
                                 continue;
                             }
                             let key_str = key.as_str().unwrap().to_string();
-                            if has_from && key_str == "from"
-                                || has_body && key_str == "body"
-                            {
+                            if has_from && key_str == "from" || has_body && key_str == "body" {
                                 continue;
                             }
-                            if !has_body && !has_from && IMPLICIT_HTML_COMPONENTS.contains(&key_str.as_str()) {
+                            if !has_body
+                                && !has_from
+                                && IMPLICIT_HTML_COMPONENTS.contains(&key_str.as_str())
+                            {
                                 from = Some(key);
                                 body = Some(value);
                                 continue;
