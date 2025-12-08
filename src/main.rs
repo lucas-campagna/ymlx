@@ -1,23 +1,15 @@
+use std::io::Read;
 use rust_yaml::Yaml;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = Yaml::new();
 
     // Parse YAML from a string
-    let yaml_content = r#"
-name: "rust-yaml"
-version: "0.0.5"
-features:
-  - fast
-  - safe
-  - reliable
-config:
-  debug: true
-  max_depth: 100
-"#;
+    let mut yaml_content = String::new();
+    std::io::stdin().read_to_string(&mut yaml_content)?;
 
-    let parsed = yaml.load_str(yaml_content)?;
-    println!("Parsed: {:#?}", parsed);
+    let parsed = yaml.load_str(yaml_content.as_str())?;
+    println!("Parsed: {:?}", parsed.to_string());
 
     // Dump back to YAML
     let output = yaml.dump_str(&parsed)?;
