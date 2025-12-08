@@ -1,8 +1,16 @@
 use rust_yaml::Value;
+use std::ops::Deref;
 
 use super::constants::IMPLICIT_HTML_COMPONENTS;
 
 pub struct Component(Value);
+
+impl Deref for Component {
+    type Target = Value;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Component {
     pub fn new(value: Value) -> Self {

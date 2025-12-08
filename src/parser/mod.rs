@@ -4,12 +4,19 @@ mod utils;
 mod runtime;
 mod component;
 
+use std::ops::Deref;
 use runtime::Runtime;
 use rust_yaml::{Error, Value};
-
 use component::Component;
 
 pub struct Parser(Value);
+
+impl Deref for Parser {
+    type Target = Value;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Parser {
     pub fn load(file: &str) -> Result<Parser, Error> {

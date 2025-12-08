@@ -1,10 +1,18 @@
 use std::collections::HashSet;
+use std::ops::Deref;
 
 use super::apply::apply;
 use super::utils::{get_template_name, is_template};
 use rust_yaml::{Error, Value};
 
 pub struct Runtime<'a>(&'a Value);
+
+impl Deref for Runtime<'_> {
+    type Target = Value;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Runtime<'_> {
     pub fn new(value: &Value) -> Runtime<'_> {
