@@ -133,7 +133,6 @@ content: "This is the card content."
             )
             .unwrap();
         let component = parser.call("Card", &props).unwrap();
-        println!("{:?}", component.to_json().to_string());
         let html = component.to_html();
         assert_eq!(
             html,
@@ -162,3 +161,36 @@ Card:
         );
     }
 
+    #[test]
+    fn test_nested_implicit_templated_components() {
+        let components = Parser::parse(
+            r#"
+$Card:
+  body:
+    - h1: $title
+  - p: $content
+
+Card:
+  from: div
+  class: card
+"#,
+        )
+        .unwrap();
+        let props = rust_yaml::Yaml::new()
+            .load_str(
+                r#"
+title: "Card Title"
+content: "This is the card content."
+"#,
+            )
+            .unwrap();
+        println!("Components: {:#?}", components.to_string());
+        let component = components.call("Card", &props).unwrap();
+        println!("{:#?}", component.to_json().to_string());
+        let html = component.to_html();
+        assert_eq!(
+            html,
+            r#"<div class="card"><h1>Card Title</h1><p>This is the card content.</p></div>"#
+        );
+    }
+}
