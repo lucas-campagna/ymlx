@@ -24,6 +24,8 @@ impl Parser {
     }
     pub fn call(&self, name: &str, props: &Value) -> Result<Component, Error> {
         let runtime = Runtime::new(&self.0);
-        Ok(Component::new(runtime.call(name, props)?))
+        let value = runtime.call(name, props)?;
+        Ok(Component::new(value))
     }
 }
+
