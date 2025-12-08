@@ -12,7 +12,7 @@ impl Runtime<'_> {
     }
 
     fn call_template(&self, name: &str, props: &Value) -> Result<Value, Error> {
-        let name = "$".to_owned() + name;
+        let name = &get_template_name(name);
         self.call(name.as_str(), props)
     }
 
