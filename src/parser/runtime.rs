@@ -40,18 +40,10 @@ impl Runtime<'_> {
             return Ok(Value::Null);
         }
         let component = component.unwrap_or(&Value::Null);
-        println!("Calling component: {}", name.as_str().unwrap());
-        println!("Componen: {:#?}", component.to_string());
         if is_template {
-            println!("Calling template: {}", name.as_str().unwrap());
-            println!("Props: {:#?}", props.to_string());
-            println!("Component: {:#?}", component.to_string());
             let mut component = apply(component, props);
-            println!("After apply: {:#?}", component.to_string());
             self.parse_from(&mut component)?;
-            println!("After parse_from: {:#?}", component.to_string());
             self.parse_body(&mut component)?;
-            println!("After parse_body: {:#?}", component.to_string());
             if has_template {
                 return self.call_template(name.as_str().unwrap(), &component);
             }
@@ -62,13 +54,8 @@ impl Runtime<'_> {
             } else {
                 Value::Null
             };
-            println!("Template: {:#?}", template.to_string());
-            println!("Component before apply: {:#?}", component.to_string());
             let component = apply(&component, &template);
-            println!("Component after apply: {:#?}", component.to_string());
-            println!("Props: {:#?}", props.to_string());
             let mut component = apply(&component, props);
-            println!("After apply: {:#?}", component.to_string());
             self.parse_from(&mut component)?;
             self.parse_body(&mut component)?;
             Ok(component)

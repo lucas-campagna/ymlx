@@ -168,7 +168,7 @@ Card:
 $Card:
   body:
     - h1: $title
-  - p: $content
+    - p: $content
 
 Card:
   from: div
@@ -184,9 +184,7 @@ content: "This is the card content."
 "#,
             )
             .unwrap();
-        println!("Components: {:#?}", components.to_string());
         let component = components.call("Card", &props).unwrap();
-        println!("{:#?}", component.to_json().to_string());
         let html = component.to_html();
         assert_eq!(
             html,
