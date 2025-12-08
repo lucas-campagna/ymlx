@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 use regex::Regex;
 use rust_yaml::Value;
 
@@ -72,14 +72,15 @@ pub fn apply_merge(target: &Value, source: &Value) -> Value {
             }
             Value::Mapping(merged)
         },
+        (_, Value::Null) => target.clone(),
         (Value::Null, _) => Value::Null,
         _ => source.clone(),
     }
 }
 
 pub fn apply(target: &Value, source: &Value) -> Value {
-    let target_props = get_props(target);
-    let source_props: Vec<String> = match source {
+    let target_props: HashSet<String> = get_props(target).into_iter().collect();
+    let source_props: HashSet<String> = match source {
         Value::Mapping(map) => map.keys().filter_map(|k| {
             if let Value::String(s) = k {
                 Some(s.clone())
@@ -88,8 +89,8 @@ pub fn apply(target: &Value, source: &Value) -> Value {
             }
         }).collect(),
         _ => vec![],
-    };
-    if source_props.iter().any(|key| target_props.contains(key)) {
+    }.into_iter().collect();
+    if target_props.intersection(&source_props).count() > 0 {
         apply_props(target, source)
     } else {
         apply_merge(target, source)
