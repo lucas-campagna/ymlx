@@ -1,126 +1,157 @@
-use std::collections::HashSet;
+use indexmap::IndexMap;
 use std::ops::Deref;
-
+use super::utils::is_template;
 use super::apply::apply;
-use super::utils::{get_template_name, is_template};
+use super::utils::{get_template_name};
 use rust_yaml::{Error, Value};
 
-pub struct Runtime<'a>(&'a Value);
+pub struct Runtime<'a> {
+    current_component: Value,
+    components: &'a Value,
+    call_stack: Vec<String>,
+}
 
 impl Deref for Runtime<'_> {
     type Target = Value;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.components
     }
 }
 
 impl Runtime<'_> {
-    pub fn new(value: &Value) -> Runtime<'_> {
-        Runtime(value)
+    pub fn new(components: &Value) -> Runtime<'_> {
+        components.as_mapping().expect("Root components should be a JSON");
+        Runtime {
+            current_component: Value::Null,
+            components,
+            call_stack: Vec::new(),
+         }
     }
 
-    fn call_template(&self, name: &str, props: &mut Value) -> Result<Value, Error> {
-        let name = &get_template_name(name);
-        self.call(name.as_str(), props)
+    pub fn call(&mut self, name: &str, mut props: Value) -> Result<Value, Error> {
+        self.current_component = self.instantiate_component(name);
+        self.call_stack.push(name.into());
+        self.process_call(&mut props)?;
+        self.call_stack.pop();
+        Ok(self.current_component.clone())
     }
 
-    pub fn call(&self, name: &str, props: &mut Value) -> Result<Value, Error> {
-        let is_template = is_template(name);
-        let name = Value::String(name.into());
-        let component = self.0.as_mapping().unwrap().get(&name);
-        let has_template = self
-            .0
-            .as_mapping()
-            .unwrap()
-            .get(&Value::String(get_template_name(
-                name.as_str().unwrap_or_default(),
-            )))
-            .is_some();
-        if component.is_none() && !has_template {
-            return Ok(Value::Null);
-        }
-        let mut component = component.unwrap_or(&Value::Null).clone();
-        if is_template {
-            apply(&mut component, props);
-            self.parse_from(&mut component)?;
-            self.parse_body(&mut component)?;
-            if has_template {
-                return self.call_template(name.as_str().unwrap(), &mut component);
-            }
-            Ok(component)
-        } else {
-            if has_template {
-                let mut template = self.call_template(name.as_str().unwrap(), props)?;
-                apply(&mut component, &mut template);
-            }
-            apply(&mut component, props);
-            self.parse_from(&mut component)?;
-            self.parse_body(&mut component)?;
-            Ok(component)
-        }
-    }
-
-    fn parse_from(&self, value: &mut Value) -> Result<(), Error> {
-        if let Some(from) = value
-            .as_mapping()
-            .and_then(|m| m.get(&Value::String("from".into())))
-            &&
-            from.is_string()
-            &&
-            self.get_components().contains(from.as_str().unwrap())
-        {
-            *value = self.call(from.as_str().unwrap(), &mut value.clone())?;
+    fn call_template(&mut self) -> Result<(), Error> {
+        if let Some(name) =  self.get_current_component_name() {
+            let name = &get_template_name(name);
+            self.current_component = self.call(name.as_str(), self.current_component.clone())?;
         }
         Ok(())
     }
 
-    fn parse_body(&self, value: &mut Value) -> Result<(), Error> {
-        let components = self.get_components();
-        fn parse_body_impl(
-            runtime: &Runtime,
-            value: &mut Value,
-            components: &HashSet<String>,
-        ) -> Result<(), Error> {
-            if let Some(body) = value
-                .as_mapping_mut()
-                .and_then(|m| m.get_mut(&Value::String("body".into())))
-            {
-                match body {
-                    Value::String(s) => {
-                        if components.contains(s) {
-                            *value = runtime.call(s, &mut Value::Null)?;
-                        }
-                    }
-                    Value::Sequence(values) => {
-                        for value in values.iter_mut() {
-                            parse_body_impl(runtime, value, components)?;
-                        }
-                    }
-                    Value::Mapping(index_map) => {
-                        for (_key, value) in index_map.iter_mut() {
-                            parse_body_impl(runtime, value, components)?;
-                        }
-                    }
-                    _ => {}
-                };
+    fn process_call(&mut self, props: &mut Value) -> Result<(), Error> {
+        let is_template = self.is_current_component_template();
+        let has_template = self.has_current_component_template();
+        if self.current_component.is_null() && !has_template {
+            Ok(())
+        } else if is_template {
+            apply(&mut self.current_component, props);
+            self.parse_from()?;
+            self.parse_body()?;
+            if has_template {
+                self.call_template()
+            } else {
+                Ok(())
             }
+        } else {
+            if has_template {
+                self.call_template()?;
+            }
+            apply(&mut self.current_component, props);
+            self.parse_from()?;
+            self.parse_body()?;
             Ok(())
         }
-        parse_body_impl(self, value, &components)
     }
 
-    fn get_components(&self) -> HashSet<String> {
-        self.0
+    fn parse_from(&mut self) -> Result<(), Error> {
+        if let Some(from) = self.current_component
+            .as_mapping()
+            .and_then(|m| m.get(&Value::String("from".into())))
+            .cloned()
+            &&
+            from.is_string()
+            &&
+            self.components.as_mapping().unwrap().contains_key(&from) {
+            self.current_component = self.call(from.as_str().unwrap(), self.current_component.clone())?;
+        }
+        Ok(())
+    }
+
+    fn parse_body(&mut self) -> Result<(), Error> {
+        self.current_component = self.parse_body_recursive(self.current_component.clone())?;
+        Ok(())
+    }
+
+    fn parse_body_recursive(&mut self, value: Value) -> Result<Value, Error> {
+        match value {
+            Value::String(name) => {
+                if self.components
+                    .as_mapping()
+                    .unwrap()
+                    .contains_key(&Value::String(name.clone()))
+                    &&
+                    !self.call_stack.contains(&name) {
+                    return self.call(&name.clone(), Value::Null);
+                }
+                Ok(Value::String(name))
+            }
+            Value::Sequence(mut values) => {
+                let mut result = Vec::with_capacity(values.len());
+                for value in values.drain(..) {
+                    result.push(self.parse_body_recursive(value)?)
+                }
+                Ok(Value::Sequence(result))
+            }
+            Value::Mapping(mut index_map) => {
+                let mut result = IndexMap::with_capacity(index_map.len());
+                for (key ,value) in index_map.drain(..) {
+                    result.insert(key ,self.parse_body_recursive(value)?);
+                }
+                Ok(Value::Mapping(result))
+            }
+            value => {Ok(value)}
+        }
+    }
+
+    fn get_current_component_name(&self) -> Option<&String> {
+        self.call_stack
+            .last()
+    }
+    
+    fn instantiate_component(&self, name: &str) -> Value {
+        self
             .as_mapping()
             .unwrap()
-            .keys()
-            .filter_map(|k| {
-                if let Value::String(s) = k {
-                    Some(s.clone())
-                } else {
-                    None
-                }
+            .get(&Value::String(name.into()))
+            .unwrap_or(&Value::Null)
+            .clone()
+    }
+    
+    fn is_current_component_template(&self) -> bool {
+        self.get_current_component_name()
+            .and_then(|name| Some(is_template(name)))
+            .unwrap_or(false)
+    }
+
+    fn get_current_component_template(&self) -> Option<&Value> {
+        self.get_current_component_name()
+            .and_then(|name| {
+                self
+                    .as_mapping()
+                    .unwrap()
+                    .get(&Value::String(
+                        get_template_name(name.as_str())
+                    ))
             })
-            .collect()
+    }
+
+    fn has_current_component_template(&self) -> bool {
+        self.get_current_component_template().is_some()
     }
 }

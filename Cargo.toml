@@ -7,3 +7,5 @@ edition = "2024"
 regex = "1.12.2"
 # rust-yaml = "0.0.5"
 rust-yaml = { git = "https://github.com/lucas-campagna/rust-yaml.git" }
+indexmap = { version = "2.0" }
+

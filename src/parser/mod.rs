@@ -33,9 +33,9 @@ impl Parser {
             _ => Err(Error::emission("Root YAML is not a mapping")),
         }
     }
-    pub fn call(&self, name: &str, props: &Value) -> Result<Component, Error> {
-        let runtime = Runtime::new(&self.0);
-        let value = runtime.call(name, &mut props.clone())?;
+    pub fn call(&self, name: &str, props: Value) -> Result<Component, Error> {
+        let mut runtime = Runtime::new(self.deref());
+        let value = runtime.call(name, props)?;
         Ok(Component::new(value))
     }
     pub fn to_yaml(&self) -> Result<String, Error> {

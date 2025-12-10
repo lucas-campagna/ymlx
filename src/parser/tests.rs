@@ -11,8 +11,7 @@ Button:
 "#,
     )
     .unwrap();
-    eprintln!("parser {:}", parser.to_json());
-    let component = parser.call("Button", &Value::Null).unwrap();
+    let component = parser.call("Button", Value::Null).unwrap();
     let html = component.to_html();
     assert_eq!(html, r#"<button type="submit">Click me!</button>"#);
 }
@@ -33,8 +32,9 @@ Link:
 url: "https://example.com"
 text: "Example"
 "#
-    ).unwrap();
-    let component = parser.call("Link", &props).unwrap();
+    ).unwrap()
+    .to_value();
+    let component = parser.call("Link", props).unwrap();
     let html = component.to_html();
     assert_eq!(html, r#"<a href="https://example.com">Example</a>"#);
 }
@@ -60,8 +60,9 @@ title: "Card Title"
 content: "This is the card content."
 "#,
         )
-        .unwrap();
-    let component = parser.call("Card", &props).unwrap();
+        .unwrap()
+        .to_value();
+    let component = parser.call("Card", props).unwrap();
     let html = component.to_html();
     assert_eq!(
         html,
@@ -87,12 +88,30 @@ title: "Card Title"
 content: "This is the card content."
 "#,
         )
-        .unwrap();
-    let component = parser.call("Card", &props).unwrap();
+        .unwrap()
+        .to_value();
+    let component = parser.call("Card", props).unwrap();
     let html = component.to_html();
     assert_eq!(
         html,
         r#"<div class="card"><h1>Card Title</h1><p>This is the card content.</p></div>"#
+    );
+}
+
+#[test]
+fn test_component_reference_by_name() {
+    let parser = Parser::parse(
+        r#"
+comp1: comp2
+comp2: comp3
+"#,
+    )
+    .unwrap();
+    let component = parser.call("comp1", Value::Null).unwrap();
+    let html = component.to_html();
+    assert_eq!(
+        html,
+        r#"comp3"#
     );
 }
 
@@ -109,7 +128,7 @@ Card:
 "#,
     )
     .unwrap();
-    let component = parser.call("Card", &Value::Null).unwrap();
+    let component = parser.call("Card", Value::Null).unwrap();
     let html = component.to_html();
     assert_eq!(
         html,
@@ -138,8 +157,9 @@ title: "Card Title"
 content: "This is the card content."
 "#,
         )
-        .unwrap();
-    let component = components.call("card", &props).unwrap();
+        .unwrap()
+        .to_value();
+    let component = components.call("card", props).unwrap();
     let html = component.to_html();
     assert_eq!(
         html,
