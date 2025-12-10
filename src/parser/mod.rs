@@ -8,10 +8,6 @@ use std::ops::Deref;
 use runtime::Runtime;
 use rust_yaml::{Error, Value, Yaml};
 use component::Component;
-
-#[cfg(test)]
-mod tests;
-
 pub struct Parser(Value);
 
 impl Deref for Parser {

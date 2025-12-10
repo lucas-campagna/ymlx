@@ -1,4 +1,5 @@
-use super::*;
+use htymlx::parser::Parser;
+use rust_yaml::Value;
 
 #[test]
 fn test_simple_html() {
