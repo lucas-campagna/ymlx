@@ -89,6 +89,9 @@ pub fn apply_merge(target: &mut Value, source: &Value) {
 }
 
 pub fn apply(target: &mut Value, source: &mut Value) {
+    if *source == Value::Null {
+        return;
+    }
     let target_props: HashSet<String> = get_props(target).into_iter().collect();
     let source_props: HashSet<String> = match source {
         Value::Mapping(map) => map.keys().filter_map(|k| {
