@@ -84,11 +84,12 @@ impl Runtime<'_> {
     }
 
     fn parse_body(&mut self) -> Result<(), Error> {
-        self.current_component = self.parse_body_recursive(self.current_component.clone())?;
+        self.current_component = self.parse_body_value(self.current_component.clone())?;
         Ok(())
     }
 
-    fn parse_body_recursive(&mut self, value: Value) -> Result<Value, Error> {
+    fn parse_body_value(&mut self, value: Value) -> Result<Value, Error> {
+        eprintln!("parse_body_value {:}", value);
         match value {
             Value::String(name) => {
                 if self.components
@@ -104,14 +105,14 @@ impl Runtime<'_> {
             Value::Sequence(mut values) => {
                 let mut result = Vec::with_capacity(values.len());
                 for value in values.drain(..) {
-                    result.push(self.parse_body_recursive(value)?)
+                    result.push(self.parse_body_value(value)?)
                 }
                 Ok(Value::Sequence(result))
             }
             Value::Mapping(mut index_map) => {
                 let mut result = IndexMap::with_capacity(index_map.len());
                 for (key ,value) in index_map.drain(..) {
-                    result.insert(key ,self.parse_body_recursive(value)?);
+                    result.insert(key ,self.parse_body_value(value)?);
                 }
                 Ok(Value::Mapping(result))
             }
