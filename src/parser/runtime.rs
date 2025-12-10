@@ -49,12 +49,10 @@ impl Runtime<'_> {
             }
             Ok(component)
         } else {
-            let mut template = if has_template {
-                self.call_template(name.as_str().unwrap(), props)?
-            } else {
-                Value::Null
-            };
-            apply(&mut component, &mut template);
+            if has_template {
+                let mut template = self.call_template(name.as_str().unwrap(), props)?;
+                apply(&mut component, &mut template);
+            }
             apply(&mut component, props);
             self.parse_from(&mut component)?;
             self.parse_body(&mut component)?;
