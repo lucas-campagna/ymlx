@@ -1,10 +1,19 @@
 use std::{collections::HashSet, sync::LazyLock};
+use indexmap::IndexMap;
 use regex::Regex;
 use rust_yaml::Value;
 
 static VAR_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\$([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
 });
+
+pub fn clear_props(target: &mut Value) {
+    let props: IndexMap<Value, Value> = get_props(target)
+        .iter()
+        .map(|prop| (Value::String(prop.clone()), Value::Null))
+        .collect();
+    apply_props(target, &Value::Mapping(props));
+}
 
 pub fn get_props(comp: &Value) -> Vec<String> {
     match comp {
@@ -20,8 +29,10 @@ pub fn get_props(comp: &Value) -> Vec<String> {
 
 pub fn apply_props(target: &mut Value, source: &Value) {
     let source_map = source.as_mapping().expect("Source should always be mapping!");
+    // eprintln!("apply_props source_map {:?}", source_map);
     match target {
         Value::String(target_str) => {
+            // eprintln!("apply_props string {}", target_str);
             let get_prop_name = |prop: &str| String::from(&prop[1..]);
             let has_prop_to_apply = source_map.keys().any(|k| {
                 match k {
@@ -36,14 +47,19 @@ pub fn apply_props(target: &mut Value, source: &Value) {
             }
             let result = VAR_RE.replace_all(target_str, |caps: &regex::Captures| {
                 let var_name = &caps[1];
-                if let Some(replacement) = source_map.get(&Value::String(var_name.to_string())) &&
-                    let Value::String(repl_str) = replacement {
-                    repl_str.clone()
+                // eprintln!("replace with re {}", var_name);
+                if let Some(replacement) = source_map.get(&Value::String(var_name.to_string())) {
+                    match replacement {
+                        Value::Null => "".to_string(),
+                        Value::String(s) => s.to_string(),
+                        v => v.to_string(),
+                    }
                 } else {
                     caps[0].to_string()
                 }
             });
-            *target = Value::String(result.into_owned())
+            // eprintln!("result: {}", result);
+            *target = Value::String(result.trim().to_string())
         }
         target => {
             if matches!(target, Value::Sequence(_)) {
@@ -89,7 +105,25 @@ pub fn apply_merge(target: &mut Value, source: &Value) {
 }
 
 pub fn apply(target: &mut Value, source: &mut Value) {
+    eprintln!("Apply to {}  with  {}", target, source);
     if *source == Value::Null {
+        return;
+    }
+    if let Value::Sequence(target_seq) = target
+        && let Value::Sequence(source_seq) = source {
+        target_seq.append(source_seq);
+        return;
+    }
+    if let Value::Sequence(source_seq) = source {
+        let new_target_seq: Vec<Value> = source_seq
+            .drain(..)
+            .map(|mut source_item| {
+                let mut model = target.clone();
+                apply(&mut model, &mut source_item);
+                model
+            })
+            .collect();
+            *target = Value::Sequence(new_target_seq);
         return;
     }
     let target_props: HashSet<String> = get_props(target).into_iter().collect();
@@ -104,12 +138,20 @@ pub fn apply(target: &mut Value, source: &mut Value) {
         _ => vec![],
     }.into_iter().collect();
     let common_props = target_props.intersection(&source_props);
+    eprintln!("Comon props {:?}", common_props);
     if common_props.count() > 0 {
+        eprintln!("Before apply props {} {}", target, source);
         apply_props(target, source);
+        // Remove applied props from source
+        eprintln!("Before retain {} {}", target, source);
         source
             .as_mapping_mut()
             .unwrap()
             .retain(|k, _| !target_props.contains(k.as_str().unwrap()));
+        eprintln!("Before merge {} {}", target, source);
+        // Replace remaining props on target
+        apply_merge(target, source);
+        eprintln!("Apply final {} {}", target, source);
     } else {
         apply_merge(target, source);
     }

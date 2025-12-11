@@ -8,6 +8,8 @@ use std::ops::Deref;
 use runtime::Runtime;
 use rust_yaml::{Error, Value, Yaml};
 use component::Component;
+use apply::clear_props;
+
 pub struct Parser(Value);
 
 impl Deref for Parser {
@@ -31,7 +33,8 @@ impl Parser {
     }
     pub fn call(&self, name: &str, props: Value) -> Result<Component, Error> {
         let mut runtime = Runtime::new(self.deref());
-        let value = runtime.call(name, props)?;
+        let mut value = runtime.call(name, props)?;
+        clear_props(&mut value);
         Ok(Component::new(value))
     }
     pub fn to_yaml(&self) -> Result<String, Error> {

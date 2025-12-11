@@ -4,6 +4,7 @@ use super::utils::is_template;
 use super::apply::apply;
 use super::utils::{get_template_name};
 use rust_yaml::{Error, Value};
+use super::constants::IMPLICIT_HTML_COMPONENTS;
 
 pub struct Runtime<'a> {
     current_component: Value,
@@ -30,6 +31,10 @@ impl Runtime<'_> {
 
     pub fn call(&mut self, name: &str, mut props: Value) -> Result<Value, Error> {
         self.current_component = self.instantiate_component(name);
+        if self.call_stack.contains(&name.to_string()) {
+            apply(&mut self.current_component, &mut props);
+            return Ok(self.current_component.clone());
+        }
         self.call_stack.push(name.into());
         self.process_call(&mut props)?;
         self.call_stack.pop();
@@ -50,21 +55,35 @@ impl Runtime<'_> {
         if self.current_component.is_null() && !has_template {
             Ok(())
         } else if is_template {
+            eprintln!("Processing call to template {:?}", self.get_current_component_name());
+            eprintln!("Before apply props {}", self.current_component);
             apply(&mut self.current_component, props);
+            eprintln!("Before parse shortcut {}", self.current_component);
+            self.parse_shortcut()?;
+            eprintln!("Before parse from {}", self.current_component);
             self.parse_from()?;
-            self.parse_body()?;
+            eprintln!("Before parse body {}", self.current_component);
+            self.parse_composition()?;
+            eprintln!("Final {}", self.current_component);
             if has_template {
                 self.call_template()
             } else {
                 Ok(())
             }
         } else {
+            eprintln!("Processing call to component {:?}", self.get_current_component_name());
             if has_template {
                 self.call_template()?;
             }
+            eprintln!("Before apply props {}", self.current_component);
             apply(&mut self.current_component, props);
+            eprintln!("Before parse shortcut {}", self.current_component);
+            self.parse_shortcut()?;
+            eprintln!("Before parse from {}", self.current_component);
             self.parse_from()?;
-            self.parse_body()?;
+            eprintln!("Before parse body {}", self.current_component);
+            self.parse_composition()?;
+            eprintln!("Final {}", self.current_component);
             Ok(())
         }
     }
@@ -74,49 +93,123 @@ impl Runtime<'_> {
             .as_mapping()
             .and_then(|m| m.get(&Value::String("from".into())))
             .cloned()
-            &&
-            from.is_string()
-            &&
-            self.components.as_mapping().unwrap().contains_key(&from) {
+            && from.is_string()
+            && self.components_map().contains_key(&from) {
+            // Remove "from" key
+            self.current_component_map_mut().swap_remove(&from);
             self.current_component = self.call(from.as_str().unwrap(), self.current_component.clone())?;
         }
         Ok(())
     }
 
-    fn parse_body(&mut self) -> Result<(), Error> {
-        self.current_component = self.parse_body_value(self.current_component.clone())?;
+    fn parse_shortcut(&mut self) -> Result<(), Error> {
+        if self.current_component.is_mapping() || self.current_component.is_sequence() {
+            self.current_component = self.parse_shortcut_value(self.current_component.clone())?;
+        }
         Ok(())
     }
 
-    fn parse_body_value(&mut self, value: Value) -> Result<Value, Error> {
-        eprintln!("parse_body_value {:}", value);
+    fn parse_shortcut_value(&mut self, value: Value) -> Result<Value, Error> {
+        println!("parse_shortcut_value {}", value);
+        match value {
+            Value::Sequence(mut value_seq) => {
+                let mut result = Vec::with_capacity(value_seq.len());
+                for value in value_seq.drain(..) {
+                    result.push(self.parse_shortcut_value(value)?)
+                }
+                let result = Value::Sequence(result);
+                eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                Ok(result)
+            },
+            Value::Mapping(mut value_map) => {
+                let from = value_map.get(&Value::String("from".into()));
+                let body = value_map.get(&Value::String("body".into()));
+                let has_from = from.map_or(false, |v| *v != Value::Null);
+                let has_body = body.map_or(false, |v| *v != Value::Null);
+                eprintln!("Is Mapping from: {:?} body: {:?}", from, body);
+                if has_from || has_body {
+                    for value in value_map.values_mut() {
+                        *value = self.parse_shortcut_value(value.to_owned())?;
+                    }
+                    let result = Value::Mapping(value_map);
+                    eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                    return Ok(result);
+                }
+                let key_value = value_map
+                    .iter()
+                    .find(|(key, _)| {
+                        if let Value::String(key) = key {
+                            return IMPLICIT_HTML_COMPONENTS.contains(&key.as_str())
+                                || self.components_map().contains_key(&Value::String(key.to_string()));
+                        }
+                        false
+                    });
+                if let Some((key, value)) = key_value {
+                    let key = key.clone();
+                    let value = value.clone();
+                    value_map.swap_remove(&key);
+                    value_map.insert(Value::String("from".into()), key);
+                    value_map.insert(Value::String("body".into()), value);
+                }
+                let result = Value::Mapping(value_map);
+                eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                Ok(result)
+            },
+            value => Ok(value),
+        }
+    }
+
+    fn parse_composition(&mut self) -> Result<(), Error> {
+        self.current_component = self.parse_composition_value(self.current_component.clone())?;
+        Ok(())
+    }
+
+    fn parse_composition_value(&mut self, value: Value) -> Result<Value, Error> {
+        eprintln!("parse_composition_value {:}", value);
         match value {
             Value::String(name) => {
-                if self.components
-                    .as_mapping()
-                    .unwrap()
+                eprintln!("Is String");
+                if self.components_map()
                     .contains_key(&Value::String(name.clone()))
                     &&
                     !self.call_stack.contains(&name) {
+                    eprintln!("Calling {}", name);
                     return self.call(&name.clone(), Value::Null);
                 }
                 Ok(Value::String(name))
             }
             Value::Sequence(mut values) => {
+                eprintln!("Is Sequence");
                 let mut result = Vec::with_capacity(values.len());
                 for value in values.drain(..) {
-                    result.push(self.parse_body_value(value)?)
+                    result.push(self.parse_composition_value(value)?)
                 }
+                eprintln!("Seq Result: {:?}", result);
                 Ok(Value::Sequence(result))
             }
             Value::Mapping(mut index_map) => {
-                let mut result = IndexMap::with_capacity(index_map.len());
-                for (key ,value) in index_map.drain(..) {
-                    result.insert(key ,self.parse_body_value(value)?);
+                let key_from = Value::String("from".into());
+                eprintln!("Is Mapping ({:?})", self.components_map().keys());
+                if let Some(from) = index_map.get(&key_from)
+                    && from.is_string()
+                    && self.components_map().contains_key(from) {
+                    eprintln!("Has from");
+                    let from = from.as_str().unwrap().to_string();
+                    index_map.swap_remove(&key_from);
+                    let props = Value::Mapping(index_map);
+                    eprintln!("Calling {}", from);
+                    let result = self.call(&from, props)?;
+                    Ok(result)
+                } else {
+                    eprintln!("Do not has from");
+                    let mut result = IndexMap::with_capacity(index_map.len());
+                    for (key ,value) in index_map.drain(..) {
+                        result.insert(key ,self.parse_composition_value(value)?);
+                    }
+                    Ok(Value::Mapping(result))
                 }
-                Ok(Value::Mapping(result))
             }
-            value => {Ok(value)}
+            value => Ok(value)
         }
     }
 
@@ -154,5 +247,22 @@ impl Runtime<'_> {
 
     fn has_current_component_template(&self) -> bool {
         self.get_current_component_template().is_some()
+    }
+
+    fn components_map(&self) -> &IndexMap<Value, Value> {
+        self.components
+            .as_mapping()
+            .unwrap()
+    }
+
+    fn current_component_map(&self) -> &IndexMap<Value, Value> {
+        self.current_component
+            .as_mapping()
+            .unwrap()
+    }
+    fn current_component_map_mut(&mut self) -> &mut IndexMap<Value, Value> {
+        self.current_component
+            .as_mapping_mut()
+            .unwrap()
     }
 }

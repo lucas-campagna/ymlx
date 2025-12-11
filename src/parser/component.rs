@@ -27,8 +27,8 @@ impl Component {
                 Value::Mapping(map) => {
                     let mut from = map.get(&Value::String("from".to_string()));
                     let mut body = map.get(&Value::String("body".to_string()));
-                    let has_from = from.is_some();
-                    let has_body = body.is_some();
+                    let has_from = from.map_or(false, |v| !v.is_null());
+                    let has_body = body.map_or(false, |v| !v.is_null());
                     let props = {
                         let mut result = Vec::new();
                         for (key, value) in map {
@@ -51,6 +51,11 @@ impl Component {
                         }
                         result
                     };
+                    let has_from = from.map_or(false, |v| !v.is_null());
+                    let has_body = body.map_or(false, |v| !v.is_null());
+                    if !has_body && !has_from {
+                        return "".to_string();
+                    }
                     let props = if props.len() == 0 {
                         "".to_owned()
                     } else {
