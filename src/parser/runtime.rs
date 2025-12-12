@@ -30,11 +30,10 @@ impl Runtime<'_> {
     }
 
     pub fn call(&mut self, name: &str, mut props: Value) -> Result<Value, Error> {
-        self.current_component = self.instantiate_component(name);
         if self.call_stack.contains(&name.to_string()) {
-            apply(&mut self.current_component, &mut props);
-            return Ok(self.current_component.clone());
+            return Ok(props);
         }
+        self.current_component = self.instantiate_component(name);
         self.call_stack.push(name.into());
         self.process_call(&mut props)?;
         self.call_stack.pop();
