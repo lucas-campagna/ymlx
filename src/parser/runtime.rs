@@ -111,17 +111,54 @@ impl Runtime<'_> {
     /// 
     /// This is recursivelly applied from inner first
     fn parse_from(&mut self) -> Result<(), Error> {
-        if let Some(from) = self.current_component
-            .as_mapping()
-            .and_then(|m| m.get(&Value::String("from".into())))
-            .cloned()
-            && from.is_string()
-            && self.components_map().contains_key(&from) {
-            // Remove "from" key
-            self.current_component_map_mut().swap_remove(&from);
-            self.current_component = self.call(from.as_str().unwrap(), self.current_component.clone())?;
+        if self.current_component.is_mapping() || self.current_component.is_sequence() {
+            self.current_component = self.parse_from_value(self.current_component.clone())?;
         }
         Ok(())
+    }
+
+    fn parse_from_value(&mut self, value: Value) -> Result<Value, Error> {
+        match value {
+            Value::Sequence(mut value_seq) => {
+                eprintln!("Is Seq");
+                let mut result = Vec::with_capacity(value_seq.len());
+                for value in value_seq.drain(..) {
+                    result.push(self.parse_shortcut_value(value)?)
+                }
+                let result = Value::Sequence(result);
+                eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                Ok(result)
+            }
+            Value::Mapping(mut value_map) => {
+                eprintln!("Is Map");
+                value_map = value_map
+                    .into_iter()
+                    .map(|(key, value)| -> Result<(Value, Value), Error> {
+                        if key == Value::String("from".into()) {
+                            Ok((key, value))
+                        } else {
+                            Ok((key, self.parse_from_value(value)?))
+                        }
+                    })
+                    .collect::<Result<IndexMap<Value, Value>, Error>>()?;
+                
+                let key_from = Value::String("from".into());
+                let result = if let Some(from) = value_map.get(&key_from)
+                    && from.is_string()
+                    && self.components_map().contains_key(from) {
+                    eprintln!("Has from");
+                    let from = from.as_str().unwrap().to_string();
+                    value_map.swap_remove(&key_from);
+                    let props = self.parse_from_value(Value::Mapping(value_map))?;
+                    eprintln!("Calling {}", from);
+                    self.call(&from, props)?
+                } else {
+                    Value::Mapping(value_map)
+                };
+                Ok(result)
+            }
+            v => Ok(v)
+        }
     }
 
     /// This parses shortcuts for `from` and `body`
