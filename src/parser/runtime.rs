@@ -255,21 +255,23 @@ impl Runtime<'_> {
         match value {
             Value::String(name) => {
                 eprintln!("Is String");
-                if self.components_map()
+                let result = if self.components_map()
                     .contains_key(&Value::String(name.clone()))
                     &&
                     !self.call_stack.contains(&name) {
                     eprintln!("Calling {}", name);
-                    return self.call(&name.clone(), Value::Null);
-                }
-                Ok(Value::String(name))
+                    self.call(&name, Value::Null)?
+                } else {
+                    Value::String(name)
+                };
+                Ok(result)
             }
-            Value::Sequence(mut values) => {
+            Value::Sequence(value_seq) => {
                 eprintln!("Is Sequence");
-                let mut result = Vec::with_capacity(values.len());
-                for value in values.drain(..) {
-                    result.push(self.parse_composition_value(value)?)
-                }
+                let result = value_seq
+                    .into_iter()
+                    .map(|value| self.parse_composition_value(value))
+                    .collect::<Result<Vec<Value>, Error>>()?;
                 eprintln!("Seq Result: {:?}", result);
                 Ok(Value::Sequence(result))
             }
@@ -291,11 +293,12 @@ impl Runtime<'_> {
                     let result = index_map
                         .into_iter()
                         .map(|(key, value)| -> Result<(Value, Value), Error> {
-                            if key == Value::String("from".into()) {
-                                Ok((key, value))
+                            let result = if !key.is_string() || key == Value::String("from".into()) {
+                                (key, value)
                             } else {
-                                Ok((key, self.parse_composition_value(value)?))
-                            }
+                                (key, self.parse_composition_value(value)?)
+                            };
+                            Ok(result)
                         })
                         .collect::<Result<IndexMap<Value, Value>, Error>>()?;
                     Ok(Value::Mapping(result))
