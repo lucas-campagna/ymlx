@@ -565,13 +565,12 @@ $box:
   class: "$color p-1 $size"
   body: "-> $text"
 box:
-  body:
-    - color: bg-red-100
-    - color: bg-yellow-100
-    - size: h-2
-    - color: bg-green-100
-      size: size-1
-    - text: test
+  - color: bg-red-100
+  - color: bg-yellow-100
+  - size: h-2
+  - color: bg-green-100
+    size: size-1
+  - text: test
 "#,
     )
     .unwrap();
@@ -579,7 +578,7 @@ box:
     let html = component.to_html();
     assert_eq!(
         html,
-        r#"<div class="bg-red-100 p-1 ">-> </div><div class="bg-yellow-100 p-1 ">-> </div><div class=" p-1 h-2">-> </div><div class="bg-green-100 p-1 size-1">-> </div><div class=" p-1 ">-> test</div>"#
+        r#"<div class="bg-red-100 p-1">-></div><div class="bg-yellow-100 p-1">-></div><div class="p-1 h-2">-></div><div class="bg-green-100 p-1 size-1">-></div><div class="p-1">-> test</div>"#
     );
 }
 
