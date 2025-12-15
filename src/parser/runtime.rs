@@ -351,11 +351,14 @@ impl Runtime<'_> {
             .unwrap()
     }
 
+    #[allow(dead_code, unused)]
     fn current_component_map(&self) -> &IndexMap<Value, Value> {
         self.current_component
             .as_mapping()
             .unwrap()
     }
+
+    #[allow(dead_code, unused)]
     fn current_component_map_mut(&mut self) -> &mut IndexMap<Value, Value> {
         self.current_component
             .as_mapping_mut()
