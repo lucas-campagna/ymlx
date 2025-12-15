@@ -531,11 +531,11 @@ fn test_template_components_with_body_replacement_and_implicit_from() {
 jesus:
   from: div
   class: bg-red-100
-  body: jesus
+  body: Jesus
 christ:
   from: div
   class: bg-yellow-100
-  body: christ
+  body: Christ
 $box:
   from: div
   id: target
