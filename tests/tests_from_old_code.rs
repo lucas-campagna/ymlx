@@ -593,11 +593,10 @@ $box:
     - $prop1
     - $prop2
 box:
-  body:
-    - prop1: CompanyA
-      prop2: 2024-2025
-    - prop1: CompanyB
-      prop2: 2023-2024
+  - prop1: CompanyA
+    prop2: 2024-2025
+  - prop1: CompanyB
+    prop2: 2023-2024
 "#,
     )
     .unwrap();
