@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use log::debug;
 use std::ops::Deref;
 use super::utils::is_template;
 use super::apply::apply;
@@ -30,7 +31,7 @@ impl Runtime<'_> {
     }
 
     pub fn call(&mut self, name: &str, mut props: Value) -> Result<Value, Error> {
-        eprintln!("Calling: {} ({:?})", name, self.call_stack);
+        debug!("Calling: {} ({:?})", name, self.call_stack);
         if self.call_stack.contains(&name.to_string()) {
             return Ok(props);
         }
@@ -56,8 +57,8 @@ impl Runtime<'_> {
         if !has_component && !has_template {
             Ok(())
         } else if is_template || !has_component {
-            eprintln!("Processing call to template {:?}", self.get_current_component_name());
-            eprintln!("Before apply props {}", self.current_component);
+            debug!("Processing call to template {:?}", self.get_current_component_name());
+            debug!("Before apply props {}", self.current_component);
             apply(&mut self.current_component, props);
             self.parse_component()?;
             if has_template {
@@ -66,11 +67,11 @@ impl Runtime<'_> {
                 Ok(())
             }
         } else {
-            eprintln!("Processing call to component {:?}", self.get_current_component_name());
+            debug!("Processing call to component {:?}", self.get_current_component_name());
             if has_template {
                 self.call_template()?;
             }
-            eprintln!("Before apply props {}", self.current_component);
+            debug!("Before apply props {}", self.current_component);
             apply(&mut self.current_component, props);
             self.parse_component()?;
             Ok(())
@@ -79,13 +80,13 @@ impl Runtime<'_> {
     
     /// Apply the `shortcut`, `from` and `composition` parsers in the correct order
     fn parse_component(&mut self) -> Result<(), Error> {
-        eprintln!("Before parse shortcut {}", self.current_component);
+        debug!("Before parse shortcut {}", self.current_component);
         self.parse_shortcut()?;
-        eprintln!("Before parse from {}", self.current_component);
+        debug!("Before parse from {}", self.current_component);
         self.parse_from()?;
-        eprintln!("Before parse composition {}", self.current_component);
+        debug!("Before parse composition {}", self.current_component);
         self.parse_composition()?;
-        eprintln!("Final {}", self.current_component);
+        debug!("Final {}", self.current_component);
         Ok(())
     }
 
@@ -113,9 +114,9 @@ impl Runtime<'_> {
     /// This is recursivelly applied from inner first
     fn parse_from(&mut self) -> Result<(), Error> {
         if self.current_component.is_mapping() || self.current_component.is_sequence() {
-            eprintln!("parse_from (Initial): {}", self.current_component.to_string());
+            debug!("parse_from (Initial): {}", self.current_component.to_string());
             self.current_component = self.parse_from_value(self.current_component.clone())?;
-            eprintln!("parse_from (Final): {}", self.current_component.to_string());
+            debug!("parse_from (Final): {}", self.current_component.to_string());
         }
         Ok(())
     }
@@ -123,17 +124,17 @@ impl Runtime<'_> {
     fn parse_from_value(&mut self, value: Value) -> Result<Value, Error> {
         match value {
             Value::Sequence(value_seq) => {
-                eprintln!("Is Seq");
+                debug!("Is Seq");
                 let result = value_seq
                     .into_iter()
                     .map(|value| self.parse_from_value(value))
                     .collect::<Result<Vec<Value>, Error>>()?;
                 let result = Value::Sequence(result);
-                eprintln!("parse_from_value Final: {}", result.to_string());
+                debug!("parse_from_value Final: {}", result.to_string());
                 Ok(result)
             }
             Value::Mapping(mut value_map) => {
-                eprintln!("Is Map");
+                debug!("Is Map");
                 value_map = value_map
                     .into_iter()
                     .map(|(key, value)| -> Result<(Value, Value), Error> {
@@ -145,15 +146,15 @@ impl Runtime<'_> {
                     })
                     .collect::<Result<IndexMap<Value, Value>, Error>>()?;
                 
-                eprintln!("Parse from {:?}", value_map);
+                debug!("Parse from {:?}", value_map);
                 let key_from = Value::String("from".into());
                 let result = if let Some(Value::String(from)) = value_map.get(&key_from)
                     && self.has_component_or_template(from) {
-                    eprintln!("Has from");
+                    debug!("Has from");
                     let from = from.clone();
                     value_map.swap_remove(&key_from);
                     let props = self.parse_from_value(Value::Mapping(value_map))?;
-                    eprintln!("Calling {}", from);
+                    debug!("Calling {}", from);
                     self.call(&from, props)?
                 } else {
                     Value::Mapping(value_map)
@@ -189,7 +190,7 @@ impl Runtime<'_> {
     }
 
     fn parse_shortcut_value(&mut self, value: Value) -> Result<Value, Error> {
-        println!("parse_shortcut_value {}", value);
+        debug!("parse_shortcut_value {}", value);
         match value {
             Value::Sequence(mut value_seq) => {
                 let mut result = Vec::with_capacity(value_seq.len());
@@ -197,7 +198,7 @@ impl Runtime<'_> {
                     result.push(self.parse_shortcut_value(value)?)
                 }
                 let result = Value::Sequence(result);
-                eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                debug!("parse_shortcut_value Final: {}", result.to_string());
                 Ok(result)
             },
             Value::Mapping(mut value_map) => {
@@ -205,13 +206,13 @@ impl Runtime<'_> {
                 let body = value_map.get(&Value::String("body".into()));
                 let has_from = from.map_or(false, |v| *v != Value::Null);
                 let has_body = body.map_or(false, |v| *v != Value::Null);
-                eprintln!("Is Mapping from: {:?} body: {:?}", from, body);
+                debug!("Is Mapping from: {:?} body: {:?}", from, body);
                 if has_from || has_body {
                     for value in value_map.values_mut() {
                         *value = self.parse_shortcut_value(value.to_owned())?;
                     }
                     let result = Value::Mapping(value_map);
-                    eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                    debug!("parse_shortcut_value Final: {}", result.to_string());
                     return Ok(result);
                 }
                 let key_value = value_map
@@ -231,7 +232,7 @@ impl Runtime<'_> {
                     value_map.insert(Value::String("body".into()), value);
                 }
                 let result = Value::Mapping(value_map);
-                eprintln!("parse_shortcut_value Final: {}", result.to_string());
+                debug!("parse_shortcut_value Final: {}", result.to_string());
                 Ok(result)
             },
             value => Ok(value),
@@ -253,15 +254,15 @@ impl Runtime<'_> {
     }
 
     fn parse_composition_value(&mut self, value: Value) -> Result<Value, Error> {
-        eprintln!("parse_composition_value {:}", value);
+        debug!("parse_composition_value {:}", value);
         match value {
             Value::String(name) => {
-                eprintln!("Is String");
+                debug!("Is String");
                 let result = if self.components_map()
                     .contains_key(&Value::String(name.clone()))
                     &&
                     !self.call_stack.contains(&name) {
-                    eprintln!("Calling {}", name);
+                    debug!("Calling {}", name);
                     self.call(&name, Value::Null)?
                 } else {
                     Value::String(name)
@@ -269,28 +270,28 @@ impl Runtime<'_> {
                 Ok(result)
             }
             Value::Sequence(value_seq) => {
-                eprintln!("Is Sequence");
+                debug!("Is Sequence");
                 let result = value_seq
                     .into_iter()
                     .map(|value| self.parse_composition_value(value))
                     .collect::<Result<Vec<Value>, Error>>()?;
-                eprintln!("Seq Result: {:?}", result);
+                debug!("Seq Result: {:?}", result);
                 Ok(Value::Sequence(result))
             }
             Value::Mapping(mut index_map) => {
                 let key_from = Value::String("from".into());
-                eprintln!("Is Mapping ({:?})", self.components_map().keys());
+                debug!("Is Mapping ({:?})", self.components_map().keys());
                 if let Some(Value::String(from)) = index_map.get(&key_from)
                     && self.has_component_or_template(from) {
-                    eprintln!("Has from");
+                    debug!("Has from");
                     let from = from.clone();
                     index_map.swap_remove(&key_from);
                     let props = Value::Mapping(index_map);
-                    eprintln!("Calling {}", from);
+                    debug!("Calling {}", from);
                     let result = self.call(&from, props)?;
                     Ok(result)
                 } else {
-                    eprintln!("Do not has from");
+                    debug!("Do not has from");
                     let result = index_map
                         .into_iter()
                         .map(|(key, value)| -> Result<(Value, Value), Error> {

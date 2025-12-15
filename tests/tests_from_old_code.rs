@@ -1,4 +1,5 @@
 use htymlx::parser::Parser;
+use log::debug;
 use rust_yaml::Value;
 
 #[test]
@@ -817,10 +818,10 @@ experiences:
 "#,
     )
     .unwrap();
-    eprintln!("{}", parser.to_json());
+    debug!("{}", parser.to_json());
     let component = parser.call("document", Value::Null).unwrap();
     let html = component.to_html();
-    eprintln!("{}", html);
+    debug!("{}", html);
     assert_eq!(
         html,
         r#"<h2 class="text-lg font-bold uppercase tracking-widest border-b-2 border-gray-900 pb-1 mb-1">experience</h2><div class="px-2"><div class="flex justify-between"><div>HP</div><div>Remote</div></div><div class="flex justify-between"><div>Sofware Developer</div><div>2020-2023</div></div><p>short description</p><div class="flex justify-between"><div>HP</div><div>Remote</div></div><div class="flex justify-between"><div>Sofware Developer</div><div>2020-2023</div></div><p>short description</p></div>"#

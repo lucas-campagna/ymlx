@@ -2,6 +2,7 @@ use std::{collections::HashSet, sync::LazyLock};
 use indexmap::IndexMap;
 use regex::Regex;
 use rust_yaml::Value;
+use log::debug;
 
 static VAR_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\$([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
@@ -29,10 +30,10 @@ pub fn get_props(comp: &Value) -> Vec<String> {
 
 pub fn apply_props(target: &mut Value, source: &Value) {
     let source_map = source.as_mapping().expect("Source should always be mapping!");
-    // eprintln!("apply_props source_map {:?}", source_map);
+    // debug!("apply_props source_map {:?}", source_map);
     match target {
         Value::String(target_str) => {
-            // eprintln!("apply_props string {}", target_str);
+            // debug!("apply_props string {}", target_str);
             let get_prop_name = |prop: &str| String::from(&prop[1..]);
             let has_prop_to_apply = source_map.keys().any(|k| {
                 match k {
@@ -47,7 +48,7 @@ pub fn apply_props(target: &mut Value, source: &Value) {
             }
             let result = VAR_RE.replace_all(target_str, |caps: &regex::Captures| {
                 let var_name = &caps[1];
-                // eprintln!("replace with re {}", var_name);
+                // debug!("replace with re {}", var_name);
                 if let Some(replacement) = source_map.get(&Value::String(var_name.to_string())) {
                     match replacement {
                         Value::Null => "".to_string(),
@@ -58,7 +59,7 @@ pub fn apply_props(target: &mut Value, source: &Value) {
                     caps[0].to_string()
                 }
             });
-            // eprintln!("result: {}", result);
+            // debug!("result: {}", result);
             *target = Value::String(result.trim().to_string())
         }
         target => {
@@ -105,7 +106,7 @@ pub fn apply_merge(target: &mut Value, source: &Value) {
 }
 
 pub fn apply(target: &mut Value, source: &mut Value) {
-    eprintln!("Apply to {}  with  {}", target, source);
+    debug!("Apply to {}  with  {}", target, source);
     if *source == Value::Null {
         return;
     }
@@ -138,20 +139,20 @@ pub fn apply(target: &mut Value, source: &mut Value) {
         _ => vec![],
     }.into_iter().collect();
     let common_props = target_props.intersection(&source_props);
-    eprintln!("Comon props {:?}", common_props);
+    debug!("Comon props {:?}", common_props);
     if common_props.count() > 0 {
-        eprintln!("Before apply props {} {}", target, source);
+        debug!("Before apply props {} {}", target, source);
         apply_props(target, source);
         // Remove applied props from source
-        eprintln!("Before retain {} {}", target, source);
+        debug!("Before retain {} {}", target, source);
         source
             .as_mapping_mut()
             .unwrap()
             .retain(|k, _| !target_props.contains(k.as_str().unwrap()));
-        eprintln!("Before merge {} {}", target, source);
+        debug!("Before merge {} {}", target, source);
         // Replace remaining props on target
         apply_merge(target, source);
-        eprintln!("Apply final {} {}", target, source);
+        debug!("Apply final {} {}", target, source);
     } else {
         apply_merge(target, source);
     }
