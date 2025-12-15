@@ -122,9 +122,7 @@ impl Runtime<'_> {
                 eprintln!("Is Seq");
                 let result = value_seq
                     .into_iter()
-                    .map(|value| {
-                        self.parse_from_value(value)
-                    })
+                    .map(|value| self.parse_from_value(value))
                     .collect::<Result<Vec<Value>, Error>>()?;
                 let result = Value::Sequence(result);
                 eprintln!("parse_from_value Final: {}", result.to_string());
