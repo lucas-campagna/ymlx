@@ -653,14 +653,15 @@ fn test_shortcut_for_component_reference_in_body_array_with_other_properties_wit
         r#"
 box:
   body:
-    - div: unique child
-      class: text-red-500
+    - div: 
+        div: unique child
+        class: text-red-500
 "#,
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
     let html = component.to_html();
-    assert_eq!(html, r#"<div class="text-red-500">unique child</div>"#);
+    assert_eq!(html, r#"<div><div class="text-red-500">unique child</div></div>"#);
 }
 
 #[test]
