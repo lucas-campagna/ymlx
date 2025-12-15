@@ -928,11 +928,13 @@ fn test_implementing_a_map_with_implicitly_component_declaration() {
     let parser = Parser::parse(
         r#"
 document:
+  from: div
+  id: parent
   body:
-    - box:
-      - Item 1
-      - Item 2
-      - Item 3
+    - box: Item 1
+    - box: Item 2
+    - box: Item 3
+
 $box:
   from: div
   class: p-2 bg-gray-100 my-1
@@ -943,6 +945,6 @@ $box:
     let html = component.to_html();
     assert_eq!(
         html,
-        r#"<div><div class="p-2 bg-gray-100 my-1">Item 1</div><div class="p-2 bg-gray-100 my-1">Item 2</div><div class="p-2 bg-gray-100 my-1">Item 3</div></div>"#
+        r#"<div id="parent"><div class="p-2 bg-gray-100 my-1">Item 1</div><div class="p-2 bg-gray-100 my-1">Item 2</div><div class="p-2 bg-gray-100 my-1">Item 3</div></div>"#
     );
 }
