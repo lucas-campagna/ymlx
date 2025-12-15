@@ -30,6 +30,7 @@ impl Runtime<'_> {
     }
 
     pub fn call(&mut self, name: &str, mut props: Value) -> Result<Value, Error> {
+        eprintln!("Calling: {} ({:?})", name, self.call_stack);
         if self.call_stack.contains(&name.to_string()) {
             return Ok(props);
         }
@@ -112,7 +113,9 @@ impl Runtime<'_> {
     /// This is recursivelly applied from inner first
     fn parse_from(&mut self) -> Result<(), Error> {
         if self.current_component.is_mapping() || self.current_component.is_sequence() {
+            eprintln!("parse_from (Initial): {}", self.current_component.to_string());
             self.current_component = self.parse_from_value(self.current_component.clone())?;
+            eprintln!("parse_from (Final): {}", self.current_component.to_string());
         }
         Ok(())
     }
@@ -142,6 +145,7 @@ impl Runtime<'_> {
                     })
                     .collect::<Result<IndexMap<Value, Value>, Error>>()?;
                 
+                eprintln!("Parse from {:?}", value_map);
                 let key_from = Value::String("from".into());
                 let result = if let Some(Value::String(from)) = value_map.get(&key_from)
                     && self.has_component_or_template(from) {
