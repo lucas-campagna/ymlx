@@ -859,13 +859,13 @@ fn test_implicit_item_with_implicit_body_in_list_and_args() {
     let parser = Parser::parse(
         r#"
 document:
+  from: div
   body:
     - experience
 experience:
-  body:
-    - h1: EXPERIENCES
-    - div: experiences
-      class: px-2
+  - h1: EXPERIENCES
+  - div: experiences
+    class: px-2
 $experiences:
   body:
     - from: div
@@ -873,16 +873,15 @@ $experiences:
     - h2: $date
     - p: $description
 experiences:
-  body:
-    - company: Company A
-      date: 2024
-      description: Description A
-    - company: Company B
-      date: 2025
-      description:
-        - Description B
-        - p: Description B
-        - Bullet: Description B
+  - company: Company A
+    date: 2024
+    description: Description A
+  - company: Company B
+    date: 2025
+    description:
+      - Description B
+      - p: Description B
+      - Bullet: Description B
 Bullet:
   from: li
   class: list-disc ml-5 my-1 text-base
