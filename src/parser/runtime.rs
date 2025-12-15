@@ -142,11 +142,10 @@ impl Runtime<'_> {
                     .collect::<Result<IndexMap<Value, Value>, Error>>()?;
                 
                 let key_from = Value::String("from".into());
-                let result = if let Some(from) = value_map.get(&key_from)
-                    && from.is_string()
-                    && self.components_map().contains_key(from) {
+                let result = if let Some(Value::String(from)) = value_map.get(&key_from)
+                    && self.has_component_or_template(from) {
                     eprintln!("Has from");
-                    let from = from.as_str().unwrap().to_string();
+                    let from = from.clone();
                     value_map.swap_remove(&key_from);
                     let props = self.parse_from_value(Value::Mapping(value_map))?;
                     eprintln!("Calling {}", from);
@@ -215,7 +214,7 @@ impl Runtime<'_> {
                     .find(|(key, _)| {
                         if let Value::String(key) = key {
                             return IMPLICIT_HTML_COMPONENTS.contains(&key.as_str())
-                                || self.components_map().contains_key(&Value::String(key.to_string()));
+                                || self.has_component_or_template(key);
                         }
                         false
                     });
@@ -276,11 +275,10 @@ impl Runtime<'_> {
             Value::Mapping(mut index_map) => {
                 let key_from = Value::String("from".into());
                 eprintln!("Is Mapping ({:?})", self.components_map().keys());
-                if let Some(from) = index_map.get(&key_from)
-                    && from.is_string()
-                    && self.components_map().contains_key(from) {
+                if let Some(Value::String(from)) = index_map.get(&key_from)
+                    && self.has_component_or_template(from) {
                     eprintln!("Has from");
-                    let from = from.as_str().unwrap().to_string();
+                    let from = from.clone();
                     index_map.swap_remove(&key_from);
                     let props = Value::Mapping(index_map);
                     eprintln!("Calling {}", from);
@@ -357,5 +355,13 @@ impl Runtime<'_> {
         self.current_component
             .as_mapping_mut()
             .unwrap()
+    }
+
+    fn has_component_or_template(&self, name: &str) -> bool {
+        let components = self.components_map();
+        let template_name = Value::String("$".to_string() + name);
+        let name = Value::String(name.into());
+        components.contains_key(&name)
+            || components.contains_key(&template_name)
     }
 }
