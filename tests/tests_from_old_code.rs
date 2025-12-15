@@ -639,9 +639,8 @@ fn test_shortcut_for_component_reference_in_body_array_with_other_properties() {
         r#"
 box:
   body:
-    - div:
-        body: unique child
-        class: text-red-500
+    - div: unique child
+      class: text-red-500
 "#,
     )
     .unwrap();
