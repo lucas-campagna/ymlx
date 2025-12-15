@@ -799,25 +799,23 @@ $experiences:
     - from: p
       body: $description
 experience:
-  body:
-    - from: section
-      title: experience
-    - from: div
-      class: px-2
-      body:
-        - experiences
+  - from: section
+    title: experience
+  - from: div
+    class: px-2
+    body:
+      - experiences
 experiences:
-  body:
-    - company: HP
-      date: 2020-2023
-      position: Sofware Developer
-      type: Remote
-      description: short description
-    - company: HP
-      date: 2020-2023
-      position: Sofware Developer
-      type: Remote
-      description: short description
+  - company: HP
+    date: 2020-2023
+    position: Sofware Developer
+    type: Remote
+    description: short description
+  - company: HP
+    date: 2020-2023
+    position: Sofware Developer
+    type: Remote
+    description: short description
 "#,
     )
     .unwrap();
