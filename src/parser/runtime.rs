@@ -51,9 +51,10 @@ impl Runtime<'_> {
     fn process_call(&mut self, props: &mut Value) -> Result<(), Error> {
         let is_template = self.is_current_component_template();
         let has_template = self.has_current_component_template();
-        if self.current_component.is_null() && !has_template {
+        let has_component = !self.current_component.is_null();
+        if !has_component && !has_template {
             Ok(())
-        } else if is_template {
+        } else if is_template || !has_component {
             eprintln!("Processing call to template {:?}", self.get_current_component_name());
             eprintln!("Before apply props {}", self.current_component);
             apply(&mut self.current_component, props);
