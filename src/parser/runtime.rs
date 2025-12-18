@@ -44,7 +44,7 @@ impl Runtime<'_> {
 
     fn call_template(&mut self) -> Result<(), Error> {
         if let Some(name) =  self.get_current_component_name() {
-            let name = &get_template_name(name);
+            let name = get_template_name(name);
             self.current_component = self.call(name.as_str(), self.current_component.clone())?;
         }
         Ok(())
