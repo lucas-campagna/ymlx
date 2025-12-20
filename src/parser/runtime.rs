@@ -7,25 +7,27 @@ use super::utils::{get_template_name};
 use rust_yaml::{Error, Value};
 use super::constants::IMPLICIT_HTML_COMPONENTS;
 
-pub struct Runtime<'a> {
+pub struct Runtime<'a, 'b> {
     current_component: Value,
     components: &'a Value,
+    functions: &'b IndexMap<String, fn(Value) -> Value>,
     call_stack: Vec<String>,
 }
 
-impl Deref for Runtime<'_> {
+impl Deref for Runtime<'_, '_> {
     type Target = Value;
     fn deref(&self) -> &Self::Target {
         &self.components
     }
 }
 
-impl Runtime<'_> {
-    pub fn new(components: &Value) -> Runtime<'_> {
+impl Runtime<'_, '_> {
+    pub fn build<'b, 'a>(components: &'a Value, functions: &'b IndexMap<String,fn(Value) -> Value>) -> Runtime<'a, 'b> {
         components.as_mapping().expect("Root components should be a JSON");
         Runtime {
             current_component: Value::Null,
             components,
+            functions,
             call_stack: Vec::new(),
          }
     }
@@ -34,6 +36,9 @@ impl Runtime<'_> {
         debug!("Calling: {} ({:?})", name, self.call_stack);
         if self.call_stack.contains(&name.to_string()) {
             return Ok(props);
+        }
+        if let Some(function) = self.functions.get(name) {
+            return Ok(function(props));
         }
         self.current_component = self.instantiate_component(name);
         self.call_stack.push(name.into());
