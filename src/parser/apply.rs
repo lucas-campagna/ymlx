@@ -84,7 +84,7 @@ pub fn apply_props(target: &mut Value, source: &Value) {
 pub fn apply_merge(target: &mut Value, source: &Value) {
     match (target, source) {
         (target, Value::Mapping(source_map))
-        if matches!(target, Value::Mapping(..)) => {
+        if target.is_mapping() => {
             let target_map = target.as_mapping().unwrap();
             let mut merged = target_map.clone();
             for (key, source_value) in source_map.iter() {
