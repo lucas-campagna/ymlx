@@ -42,7 +42,7 @@ impl Runtime<'_, '_> {
         }
         self.current_component = self.instantiate_component(name);
         self.call_stack.push(name.into());
-        self.process_call(&mut props)?;
+        self.process_component_call(&mut props)?;
         self.call_stack.pop();
         Ok(self.current_component.clone())
     }
@@ -55,7 +55,7 @@ impl Runtime<'_, '_> {
         Ok(())
     }
 
-    fn process_call(&mut self, props: &mut Value) -> Result<(), Error> {
+    fn process_component_call(&mut self, props: &mut Value) -> Result<(), Error> {
         let is_template = self.is_current_component_template();
         let has_template = self.has_current_component_template();
         let has_component = !self.current_component.is_null();
