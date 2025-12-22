@@ -213,6 +213,11 @@ impl Runtime<'_, '_> {
                 let has_body = body.map_or(false, |v| *v != Value::Null);
                 debug!("Is Mapping from: {:?} body: {:?}", from, body);
                 if has_from || has_body {
+                    let has_body_only = has_body && value_map.len() == 1;
+                    if has_body_only {
+                        let body = value_map.swap_remove(&Value::String("body".into())).unwrap();
+                        return self.parse_shortcut_value(body);
+                    }
                     for value in value_map.values_mut(){
                         if value.is_sequence() || value.is_mapping() {
                             *value = self.parse_shortcut_value(value.to_owned())?;
@@ -233,10 +238,14 @@ impl Runtime<'_, '_> {
                     });
                 if let Some((key, value)) = key_value {
                     let key = key.clone();
-                    let value = value.clone();
+                    let value = self.parse_shortcut_value(value.clone())?;
                     value_map.swap_remove(&key);
-                    value_map.insert(Value::String("from".into()), key);
-                    value_map.insert(Value::String("body".into()), value);
+                    if value_map.len() == 0 && let Value::Mapping(value) = value {
+                        value_map.extend(value);
+                    } else {
+                        value_map.insert(Value::String("from".into()), key);
+                        value_map.insert(Value::String("body".into()), value);
+                    }
                 }
                 let result = Value::Mapping(value_map);
                 debug!("parse_shortcut_value Final: {}", result.to_string());

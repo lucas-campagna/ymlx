@@ -653,6 +653,7 @@ fn test_shortcut_for_component_reference_in_body_array_with_other_properties_wit
     let parser = Parser::parse(
         r#"
 box:
+  from: div
   body:
     - div: 
         div: unique child
@@ -931,7 +932,7 @@ document:
     - box: Item 2
     - box: Item 3
 
-$box:
+box:
   from: div
   class: p-2 bg-gray-100 my-1
 "#,

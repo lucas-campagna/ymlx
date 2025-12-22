@@ -167,3 +167,28 @@ content: "This is the card content."
         r#"<div class="card"><h1>Card Title</h1><p>This is the card content.</p></div>"#
     );
 }
+
+#[test]
+fn test_shortcut_with_mapping_body_as_component_properties() {
+    let components = Parser::parse(r#"
+a: 123
+b:
+  a: 456
+c:
+  a:
+    d: 123
+    e: 456
+
+"#)
+    .unwrap();
+    let b = components.call("b", Value::Null).unwrap();
+    assert_eq!(
+        b.to_html(),
+        r#"456"#
+    );
+    let c = components.call("c", Value::Null).unwrap();
+    assert_eq!(
+        c.to_string(),
+        r#"{"d": 123, "e": 456}"#
+    );
+}
