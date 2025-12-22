@@ -21,20 +21,20 @@ impl Parser {
         Ok(Parser::parse(&input)?)
     }
 
-    pub fn from(components: Value, functions: IndexMap<String, fn(Value) -> Value>) -> Parser {
-        Parser { components, functions }
+    pub fn from(components: Value, functions: IndexMap<String, fn(Value) -> Value>) -> Result<Parser, Error> {
+        if !components.is_mapping() {
+            Err(Error::emission("Root YAML is not a mapping"))?;
+        }
+        Ok(Parser { components, functions })
     }
 
-    pub fn from_components(components: Value) -> Parser {
+    pub fn from_components(components: Value) -> Result<Parser, Error> {
         Parser::from(components, IndexMap::new())
     }
     
     pub fn parse(input: &str) -> Result<Parser, Error> {
         let value = rust_yaml::Yaml::new().load_str(input)?;
-        match value {
-            Value::Mapping(value) => Ok(Parser::from_components(Value::Mapping(value))),
-            _ => Err(Error::emission("Root YAML is not a mapping")),
-        }
+        Parser::from_components(value)
     }
 
     pub fn add_function(&mut self, name: &str, function: fn(Value) -> Value) {
