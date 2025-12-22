@@ -213,8 +213,10 @@ impl Runtime<'_, '_> {
                 let has_body = body.map_or(false, |v| *v != Value::Null);
                 debug!("Is Mapping from: {:?} body: {:?}", from, body);
                 if has_from || has_body {
-                    for value in value_map.values_mut() {
-                        *value = self.parse_shortcut_value(value.to_owned())?;
+                    for value in value_map.values_mut(){
+                        if value.is_sequence() || value.is_mapping() {
+                            *value = self.parse_shortcut_value(value.to_owned())?;
+                        }
                     }
                     let result = Value::Mapping(value_map);
                     debug!("parse_shortcut_value Final: {}", result.to_string());
