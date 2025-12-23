@@ -1,4 +1,5 @@
 use htymlx::parser::Parser;
+use htymlx::render::html;
 use rust_yaml::Value;
 
 #[test]
@@ -13,7 +14,7 @@ Button:
     )
     .unwrap();
     let component = parser.call("Button", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<button type="submit">Click me!</button>"#);
 }
 
@@ -36,7 +37,7 @@ text: "Example"
     ).unwrap()
     .to_value();
     let component = parser.call("Link", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<a href="https://example.com">Example</a>"#);
 }
 
@@ -64,7 +65,7 @@ content: "This is the card content."
         .unwrap()
         .to_value();
     let component = parser.call("Card", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="card"><h1>Card Title</h1><p>This is the card content.</p></div>"#
@@ -92,7 +93,7 @@ content: "This is the card content."
         .unwrap()
         .to_value();
     let component = parser.call("Card", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="card"><h1>Card Title</h1><p>This is the card content.</p></div>"#
@@ -109,7 +110,7 @@ comp2: comp3
     )
     .unwrap();
     let component = parser.call("comp1", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"comp3"#
@@ -130,7 +131,7 @@ Card:
     )
     .unwrap();
     let component = parser.call("Card", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="card">test</div>"#
@@ -161,7 +162,7 @@ content: "This is the card content."
         .unwrap()
         .to_value();
     let component = components.call("card", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="card"><h1>Card Title</h1><p>This is the card content.</p></div>"#
@@ -183,7 +184,7 @@ c:
     .unwrap();
     let b = components.call("b", Value::Null).unwrap();
     assert_eq!(
-        b.to_html(),
+        html(&b),
         r#"456"#
     );
     let c = components.call("c", Value::Null).unwrap();

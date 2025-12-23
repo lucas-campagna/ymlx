@@ -1,4 +1,5 @@
 use htymlx::parser::Parser;
+use htymlx::render::html;
 use log::debug;
 use rust_yaml::Value;
 
@@ -14,7 +15,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="bg-red-100">My box</div>"#);
 }
 
@@ -37,7 +38,7 @@ text: Hello
     .unwrap()
     .to_value();
     let component = parser.call("box", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="bg-red-100">Hello</div>"#);
 }
 
@@ -56,7 +57,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="bg-blue-100 p-2">My Comp</div>"#);
 }
 
@@ -81,7 +82,7 @@ box:
     )
     .unwrap();
     let component = parser.call("final", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="bg-green-100">123</div>"#);
 }
 
@@ -100,7 +101,7 @@ box1:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="bg-red-100 width-[20px]">My box</div>"#);
 }
 
@@ -119,7 +120,7 @@ box1:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="width-[20px]">width-[20px]</div>"#);
 }
 
@@ -134,7 +135,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div>My Comp</div>"#);
 }
 
@@ -155,7 +156,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div><div>second child</div></div>"#
@@ -179,7 +180,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div><div>second child</div>third child</div>"#
@@ -206,7 +207,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div><div>second child</div>third child</div>"#
@@ -236,7 +237,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div><div>second child</div>third child</div>"#
@@ -263,7 +264,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div><div>second child</div></div>"#
@@ -287,7 +288,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div></div>"#
@@ -317,7 +318,7 @@ s3: height-3
     .unwrap()
     .to_value();
     let component = parser.call("box", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="bg-red-100 width-2 height-3"></div>"#);
 }
 
@@ -335,7 +336,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     // The parser output likely omits the top-level 'box' if it doesn't have 'from'.
     assert_eq!(html, r#"<div>first child</div><div>second child</div>"#);
 }
@@ -350,7 +351,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     // Assuming an empty string is returned for an un-rendered component
     assert_eq!(html, r#""#);
 }
@@ -372,7 +373,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="bg-red-100 p-1"><div class="bg-yellow-100 p-1"><div class="bg-green-100 p-1 size-1"></div></div></div>"#
@@ -395,7 +396,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="bg-red-100 p-1"></div><div class="bg-yellow-100 p-1"></div><div class="bg-green-100 p-1 size-1"></div>"#
@@ -422,7 +423,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="first">first child</div><div id="second">second child</div>"#
@@ -449,7 +450,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="bg-red-100"></div><div class="bg-blue-100"></div><div class="bg-red-100 bg-yellow-100"></div>"#
@@ -473,7 +474,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="target" class="bg-green-100 p-1 size-1">instance</div>"#
@@ -499,7 +500,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="target"><div>jesus</div><div>christ</div></div>"#
@@ -521,7 +522,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div id="target">jesus christ</div>"#);
 }
 
@@ -550,7 +551,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="target"><div class="bg-red-100">Jesus</div><div class="bg-yellow-100">Christ</div></div>"#
@@ -576,7 +577,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="bg-red-100 p-1">-></div><div class="bg-yellow-100 p-1">-></div><div class="p-1 h-2">-></div><div class="bg-green-100 p-1 size-1">-></div><div class="p-1">-> test</div>"#
@@ -602,7 +603,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="flex justify-between">CompanyA2024-2025</div><div class="flex justify-between">CompanyB2023-2024</div>"#
@@ -625,7 +626,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div>first child</div><div>second child</div><p>third child</p><h2>fourth child</h2></div>"#
@@ -644,7 +645,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div class="text-red-500">unique child</div>"#);
 }
 
@@ -662,7 +663,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div><div class="text-red-500">unique child</div></div>"#);
 }
 
@@ -694,7 +695,7 @@ div_content: Div text
     .unwrap()
     .to_value();
     let component = parser.call("box", props).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div><p class="text-red-500">Paragraph text</p><h2>Heading text</h2><span class="font-bold">Span text</span><div class="bg-blue-100 p-2">Div text</div></div>"#
@@ -721,7 +722,7 @@ box:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<ul><li>first child</li><li>second child</li><li>third child</li></ul>"#
@@ -744,7 +745,7 @@ box1:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(html, r#"<div>test</div>"#);
 }
 
@@ -765,7 +766,7 @@ btn:
     )
     .unwrap();
     let component = parser.call("box", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<button onclick="alert("Hello")">Hello</button><button onclick="alert("World")">World</button>"#
@@ -821,7 +822,7 @@ experiences:
     .unwrap();
     debug!("{}", parser.to_json());
     let component = parser.call("document", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     debug!("{}", html);
     assert_eq!(
         html,
@@ -845,7 +846,7 @@ bullet_point:
     )
     .unwrap();
     let component = parser.call("document", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<li class="list-disc ml-5 my-1 text-base">item 1</li><li class="list-disc ml-5 my-1 text-base">item 2</li><li class="list-disc ml-5 my-1 text-base">item 3</li>"#
@@ -887,7 +888,7 @@ Bullet:
     )
     .unwrap();
     let component = parser.call("document", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div><h1>EXPERIENCES</h1><div class="px-2"><div>Company A</div><h2>2024</h2><p>Description A</p><div>Company B</div><h2>2025</h2><p>Description B<p>Description B</p><li class="list-disc ml-5 my-1 text-base">Description B</li></p></div></div>"#
@@ -913,7 +914,7 @@ box:
     )
     .unwrap();
     let component = parser.call("document", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div class="p-2 bg-gray-100 my-1">Item 1</div><div class="p-2 bg-gray-100 my-1">Item 2</div><div class="p-2 bg-gray-100 my-1">Item 3</div>"#
@@ -939,7 +940,7 @@ box:
     )
     .unwrap();
     let component = parser.call("document", Value::Null).unwrap();
-    let html = component.to_html();
+    let html = html(&component);
     assert_eq!(
         html,
         r#"<div id="parent"><div class="p-2 bg-gray-100 my-1">Item 1</div><div class="p-2 bg-gray-100 my-1">Item 2</div><div class="p-2 bg-gray-100 my-1">Item 3</div></div>"#

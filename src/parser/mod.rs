@@ -2,14 +2,12 @@ mod constants;
 mod apply;
 mod utils;
 mod runtime;
-mod component;
+pub mod render;
 
 use indexmap::IndexMap;
 use runtime::Runtime;
 use rust_yaml::{Error, Value, Yaml};
-use component::Component;
 use apply::clear_props;
-
 pub struct Parser {
     components: Value,
     functions: IndexMap<String, fn(Value) -> Value>,
@@ -45,11 +43,11 @@ impl Parser {
         self.functions.extend(functions);
     }
 
-    pub fn call(&self, name: &str, props: Value) -> Result<Component, Error> {
+    pub fn call(&self, name: &str, props: Value) -> Result<Value, Error> {
         let mut runtime = Runtime::build(&self.components, &self.functions);
         let mut value = runtime.call(name, props)?;
         clear_props(&mut value);
-        Ok(Component::new(value))
+        Ok(value)
     }
 
     pub fn to_yaml(&self) -> Result<String, Error> {
@@ -57,9 +55,6 @@ impl Parser {
     }
     pub fn to_json(&self) -> String {
         self.components.to_string()
-    }
-    pub fn to_component(&self) -> Component {
-        Component::new(self.to_value())
     }
     pub fn to_value(&self) -> Value {
         self.components.clone()
