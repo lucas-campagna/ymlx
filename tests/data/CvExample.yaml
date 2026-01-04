@@ -1,13 +1,13 @@
 document:
-  - experience
+  - $yx-experience
 
 experience:
   - h1: Professional Experience
-  - jobList
+  - $yx-jobList
 
 $jobList:
-  from: div
-  body:
+  yx-from: div
+  children:
     - h1: $title at $company
     - span: $duration
 

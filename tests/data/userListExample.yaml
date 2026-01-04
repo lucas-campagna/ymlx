@@ -1,16 +1,17 @@
 $$userList:
-  from: userCard
+  yx-from: userCard
 
 $userList:
-  from: sql
+  yx-from: sql
   query: SELECT name, email FROM users WHERE active = 1
 
 userList:
-  from: div
+  yx-from: div
   class: grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3
+  children: $_
 
 userCard:
-  from: div
+  yx-from: div
   class: bg-white shadow-md rounded-lg p-6 max-w-sm
   body:
     - h2: $name

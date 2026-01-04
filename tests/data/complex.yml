@@ -4,5 +4,5 @@ $card:
     - p: $content
 
 card:
-  from: div
+  yx-from: div
   class: card

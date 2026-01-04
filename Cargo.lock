@@ -109,17 +109,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 
 [[package]]
-name = "htymlx"
-version = "0.1.0"
-dependencies = [
- "env_logger",
- "indexmap",
- "log",
- "regex",
- "rust-yaml",
-]
-
-[[package]]
 name = "indexmap"
 version = "2.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -332,4 +321,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link",
+]
+
+[[package]]
+name = "ymx"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "indexmap",
+ "log",
+ "regex",
+ "rust-yaml",
 ]
