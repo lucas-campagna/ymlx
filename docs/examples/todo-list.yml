@@ -11,12 +11,13 @@ app:
   - yx-ul: null
     id: "item-list"
 
+$$add-item:
+  yx-from: list-item
+
 $add-item:
   yx-from: sql
   query: INSERT INTO todo_items (description) VALUES ($desc); SELECT id, description FROM todo_items;
 
-add-item:
-  yx-from: list-item
 
 list-item:
   yx-from: li
@@ -35,3 +36,10 @@ $delete-item:
 
 delete-item:
   yx-from: list-item
+
+# regex
+~.*:
+  yx-from: to-html
+  element: $^
+  children: $$body
+  props: $_

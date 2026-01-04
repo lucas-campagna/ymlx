@@ -3,5 +3,4 @@ $(#root):
 
 app:
   yx-button: "Clicks: $count"
-  hx-get: "/app?count=$(count+1)"
-  hx-swap: "outerHTML"
+  hx-get: "/app?count=$($count+1)"

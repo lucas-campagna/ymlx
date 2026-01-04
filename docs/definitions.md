@@ -18,13 +18,13 @@ Example: calling `comp` from previous example you get the string `"Hello World!"
 
 3. Components can be called with arguments, the result depends on the **component** and **argument** types. The following rules are applied in order:
 
-  1. **argument** is **null**, then **component** value is returned
-  2. **component** and **argument** are **sequence**s, the result is the concatenation of **component** with **argument**
-  3. **component** or **argument** is **sequence**, the result is a call to each **sequence** item using the other non-**sequence** counterpart as **component** or **argument**
-  4. **argument** is **object** and **component** has any variable, the result is the replacement of **argument** variables into **component** variables
-  5. **argument** and **component** are **object**s, the result is the result of assignment of **argument** into **component**
-  6. **component** contains `_` variable, then the **return** is the pasting of **argument** into all occourences of it or, if it's an `object`, only the remaining variables from step `4.` will be pasted
-  7. Otherwise **component** is returned
+    1. **argument** is **null**, then **component** value is returned
+    2. **component** and **argument** are **sequence**s, the result is the concatenation of **component** with **argument**
+    3. **component** or **argument** is **sequence**, the result is a call to each **sequence** item using the other non-**sequence** counterpart as **component** or **argument**
+    4. **argument** is **object** and **component** has any variable, the result is the replacement of **argument** variables into **component** variables
+    5. **argument** and **component** are **object**s, the result is the result of assignment of **argument** into **component**
+    6. **component** contains `_` variable, then the **return** is the pasting of **argument** into all occourences of it or, if it's an `object`, only the remaining variables from step `4.` will be pasted
+    7. Otherwise **component** is returned
 
 > A variable is any word starting with dollar sign (`$`) and may contain `_`.
 > After replacing variables all unused variables are discarted into `_` the variable (if present).
@@ -56,13 +56,13 @@ comp6:
   props: $_
 ```
 
-Calling **component** `comp1` with **argument** `{"name": "Alice"}` you get `"Hello, Alice"`.
-Calling **component** `comp2` with **argument** `["d", "e"]` you get `["a", "b", "c", "d", "e"]`.
-Calling **component** `comp3` with **argument** `{"name": "Bob", "last": "Rock"}` you get `["Hello, Bob", {"full_name": "Bob Rock", "year": 2026}, null, 123]`.
-Calling **component** `comp4` with **argument** `$a + $b = $c` you get `"1 + 2 = 3"`.
-Calling **component** `comp4` with **argument** `{"d": 4, "e": 5}` you get `{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}`.
-Calling **component** `comp5` with **argument** `123` you get `[123, {"a": 123}, "The ticket is 123"]`.
-Calling **component** `comp6` with **argument** `{"name": "Alice", "age": 123, "role": "president"}` you get `{"id": "Alice", "props": {"age": 123, "role": "president"}}`.
+- Calling **component** `comp1` with **argument** `{"name": "Alice"}` you get `"Hello, Alice"`.
+- Calling **component** `comp2` with **argument** `["d", "e"]` you get `["a", "b", "c", "d", "e"]`.
+- Calling **component** `comp3` with **argument** `{"name": "Bob", "last": "Rock"}` you get `["Hello, Bob", {"full_name": "Bob Rock", "year": 2026}, null, 123]`.
+- Calling **component** `comp4` with **argument** `$a + $b = $c` you get `"1 + 2 = 3"`.
+- Calling **component** `comp4` with **argument** `{"d": 4, "e": 5}` you get `{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}`.
+- Calling **component** `comp5` with **argument** `123` you get `[123, {"a": 123}, "The ticket is 123"]`.
+- Calling **component** `comp6` with **argument** `{"name": "Alice", "age": 123, "role": "president"}` you get `{"id": "Alice", "props": {"age": 123, "role": "president"}}`.
 
 3. You can automate component calling by using the `yx-from` property.
 
@@ -76,6 +76,56 @@ comp:
 ```
 
 When `comp` is called it calls `div` component with `{"body": "Hello World!"}` as argument, which returns `<div>Hello Word!</div>`, then it's returned to the first (`comp`) call.
+
+
+4. Components can be functions to be called with expected arguments
+
+Example:
+
+```rs
+fn sql(args: Props) -> Vec[String] {
+  let query = args.query;
+  conn.execute(query).unwrap()
+}
+```
+
+```yml
+users:
+  yx-from: sql
+  query: SELECT name FROM users
+```
+
+Calling `users` you get the list of users in your database.
+
+5. You can shortcut the call to other components using it's name with the prefix `yx-`.
+
+> Parameter shortcut rule:
+> If **component** has only one variable, or more than one variable but only one starting with `$$` instead of `$`, and **argument** is a scalar (string, number, boolean or null), the applied **argument** is an object with only one key equals to the **component** variable (or that one starting with `$$`) and value equals to the original **argument** scalar.
+
+Example: The example of item `3.` can be shortcuted to
+
+```yml
+div: <div>$body</div>
+comp:
+  yx-div: Hello World!
+```
+
+5. template
+
+6. You can eval math in strings using `$()`
+
+Example:
+
+```yml
+app: cossine of 60 deg is $(cos(60*pi/180))
+```
+
+Calling `app` you get `cossine of 60 deg is 0.5`
+
+7. component pasting
+
+8. regex components
+
 
 3. To define the component children use the `body` property.
 
@@ -305,27 +355,3 @@ app:
 ```
 
 It renders `<div>Hello world!</div>` inside the element with id `root`.
-
-18. Components can be functions to be called with expected arguments
-
-Example:
-
-```rs
-fn sql(query: String) -> Result<String> {
-  conn.execute(query)?
-}
-```
-
-```yml
-$$app:
-  yx-from: li
-  children: $name
-$app:
-  yx-from: sql
-  query: SELECT name FROM users;
-app:
-  yx-from: ol
-  children: $_
-```
-
-Rendering `app` you could get `<ol><li>God</li><li>Adam</li><li>Eve</li></ol>`
