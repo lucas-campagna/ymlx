@@ -16,21 +16,20 @@ list-item:
   id: "item-$id"
   yx-li: 
     - yx-span: $description
-    - yx-button: "Delete"
-      hx-push: "/delete-item"
-      hx-vals: 'js:{id: $id}'
-      hx-target: "#item-list"
+    - yx-delete-button: $id
 
-get-items:
-  yx-seq:
-    - yx-sql: SELECT id, description FROM todo_items;
-    - yx-list-item
+delete-button:
+  yx-button: "Delete"
+  hx-push: "/delete-item"
+  hx-vals: 'js:{id: $id}'
+  hx-target: "#item-list"
 
-delete-item:
-  - yx-sql: DELETE FROM todo_items WHERE id = $id
-  - yx-get-items
+update-items(pipe):
+  - yx-sql: $query;SELECT id, description FROM todo_items;
+  - yx-list-item
 
-add-item:
-  yx-seq:
-    - yx-sql: INSERT INTO todo_items (description) VALUES ($desc)
-    - yx-get-items
+delete-item(update-items):
+  DELETE FROM todo_items WHERE id = $id
+  
+add-item(update-items):
+  INSERT INTO todo_items (description) VALUES ($desc)
