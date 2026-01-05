@@ -1,18 +1,12 @@
-$$userList:
-  yx-from: userCard
-
-$userList:
-  yx-from: sql
-  query: SELECT name, email FROM users WHERE active = 1
+userCard:
+  yx-div: 
+    - yx-h2: $name
+    - yx-span: $email
+  class: bg-white shadow-md rounded-lg p-6 max-w-sm
 
 userList:
-  yx-from: div
-  class: grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3
-  children: $_
-
-userCard:
-  yx-from: div
-  class: bg-white shadow-md rounded-lg p-6 max-w-sm
-  body:
-    - h2: $name
-    - span: $email
+  yx-seq:
+    - yx-sql: SELECT name, email FROM users WHERE active = 1
+    - yx-userCard
+    - yx-div: $_
+      class: grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3

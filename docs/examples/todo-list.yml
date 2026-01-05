@@ -8,38 +8,29 @@ app:
     hx-push: "/add-item"
     hx-vals: 'js:{desc: document.getElementById("item-desc").value}'
     hx-target: "#item-list"
-  - yx-ul: null
+  - yx-ul: yx-get-items
     id: "item-list"
-
-$$add-item:
-  yx-from: list-item
-
-$add-item:
-  yx-from: sql
-  query: INSERT INTO todo_items (description) VALUES ($desc); SELECT id, description FROM todo_items;
-
-
+  
 list-item:
-  yx-from: li
   class: flex justify-between items-center p-2 border-b
   id: "item-$id"
-  children:
-    - span: $description
+  yx-li: 
+    - yx-span: $description
     - yx-button: "Delete"
       hx-push: "/delete-item"
       hx-vals: 'js:{id: $id}'
       hx-target: "#item-list"
 
-$delete-item:
-  yx-from: sql
-  query: DELETE FROM todo_items WHERE id = $id; SELECT id, description FROM todo_items;
+get-items:
+  yx-seq:
+    - yx-sql: SELECT id, description FROM todo_items;
+    - yx-list-item
 
 delete-item:
-  yx-from: list-item
+  - yx-sql: DELETE FROM todo_items WHERE id = $id
+  - yx-get-items
 
-# regex
-~.*:
-  yx-from: to-html
-  element: $^
-  children: $$body
-  props: $_
+add-item:
+  yx-seq:
+    - yx-sql: INSERT INTO todo_items (description) VALUES ($desc)
+    - yx-get-items
