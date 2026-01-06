@@ -1,0 +1,89 @@
+# app.yml
+
+$(body): yx-App
+
+App:
+  name: RD Motos
+  version: 1.0.0
+  db:
+    url: localhost:5432
+    tables:
+      - orders
+      - customers
+      - products
+  pages:
+    Home: /home
+    Estoque: /estoque
+    Vendas: /vendas
+  currentPage: Home
+
+$App:
+  class: app-container
+  yx-div:
+    - yx-h1: $name
+      class: app-header
+    - yx-Navbar: $pages
+    - yx-main: yx-$currentPage
+    - yx-footer: "&copy; 2024 Inventory Management Inc."
+
+# pages/home.yml
+Home(div):
+  - yx-h2: "Welcome to RD Motos"
+    class: page-title
+  - yx-p: "Your one-stop solution for motorcycle inventory management."
+    class: page-description
+  - yx-div:
+      yx-h3: Vendas
+
+# components/navbar.yml
+
+Navbar(pipe):
+  - yx-entries: $default
+  - yx-NavBarEntriesMap
+  - yx-NavButton
+  - yx-join
+  - yx-NavBarWrapper
+
+NavBarEntriesMap:
+  name: $key
+  href: $value
+
+NavButton:
+  class: nav-button
+  href: $href
+  yx-a: $name
+
+NavBarWrapper:
+  yx-nav: $default
+  class: nav-container
+
+# components/ui/tabs.yml
+
+# example of $tabs
+# tabs = [{route: "/tab1", name: "Aba 1"}, {route: "/tab2", name: "Aba 2"}, {route: "/tab3", name: "Aba 3"}]
+
+Tabs:
+  class: tabs
+  yx-from: div
+  body:
+    - yx-from: TabList
+      tabs: $tabs
+    - yx-TabContent
+
+TabButton:
+  hx-get: $route
+  hx-target: "#tab-content"
+  hx-push-url: "true"
+  class: tab-button
+  yx-button: $name
+
+TabList:
+  role: tablist
+  style: "display: flex; gap: 10px;"
+  yx-div:
+    yx-TabButton: $tabs
+
+TabContent:
+  id: tab-content
+  style: "margin-top: 20px; border: 1px solid #ccc; padding: 15px;"
+  yx-div: "Clique em uma aba para carregar o conteúdo..."

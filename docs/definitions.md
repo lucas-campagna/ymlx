@@ -99,8 +99,9 @@ Calling `users` you get the list of users in your database.
 
 5. You can shortcut the call to other components using it's name with the prefix `yx-`.
 
-> Parameter shortcut rule:
-> If **component** has only one variable and **argument** is a scalar (string, number, boolean or null), the applied **argument** is an object with only one key equals to the **component** variable and value equals to the original **argument** scalar.
+> **Parameter shortcut rule:**
+> If **argument** is not a **sequence** it must have only one varial 
+> If **component** has only one variable, the applied **argument** is an object with only one key equals to the **component** variable and value equals to the original **argument**.
 
 Example: The example of item `3.` can be shortcuted to
 

@@ -8,8 +8,9 @@ app:
     hx-push: "/add-item"
     hx-vals: 'js:{desc: document.getElementById("item-desc").value}'
     hx-target: "#item-list"
-  - yx-ul: yx-get-items
-    id: "item-list"
+  - yx-from: ul
+    id: item-list
+    body: yx-get-items
   
 list-item:
   class: flex justify-between items-center p-2 border-b
@@ -24,8 +25,10 @@ delete-button:
   hx-vals: 'js:{id: $id}'
   hx-target: "#item-list"
 
+get-items(sql): SELECT id, description FROM todo_items
+
 update-items(pipe):
-  - yx-sql: $query;SELECT id, description FROM todo_items;
+  - yx-sql: $query;SELECT id, description FROM todo_items
   - yx-list-item
 
 delete-item(update-items):
