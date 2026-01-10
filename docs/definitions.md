@@ -79,6 +79,7 @@ comp:
 
 When `comp` is called it calls `div` component with `{"body": "Hello World!"}` as argument, which returns `<div>Hello Word!</div>`, then it's returned to the first (`comp`) call.
 
+> Intead of `yx-from` you may prefer use `from!` or `From`.
 
 4. Components can be functions to be called with expected arguments
 
