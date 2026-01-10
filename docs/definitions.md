@@ -19,12 +19,13 @@ Example: calling `comp` from previous example you get the string `"Hello World!"
 3. Components can be called with arguments, the result depends on the **component** and **argument** types. The following rules are applied in order:
 
     1. **argument** is **null**, then **component** value is returned
-    2. **argument** is **object** and **component** has any variable, the result is the replacement of **argument** variables into **component** variables
+    2. **argument** is **object** and **component** has any valid and common variable with the **arguments**, the result is the replacement of **argument** variables into **component** variables
     3. **component** and **argument** are **sequence**s, the result is the concatenation of **component** with **argument**
     4. **component** or **argument** is **sequence**, the result is a call to each **sequence** item using the other non-**sequence** counterpart as **component** or **argument**
-    5. **argument** and **component** are **object**s, the result is the result of assignment of **argument** into **component**
-    6. **component** contains `_` variable, then the **return** is the pasting of **argument** into all occourences of it or, if it's an `object`, only the remaining variables from step `4.` will be pasted
-    7. Otherwise **component** is returned
+    5. **component** has only one valid variable, the result is the application of **argument** into this **component**
+    6. **argument** and **component** are **object**s, the result is the result of assignment of **argument** into **component**
+    7. **component** contains `_` variable, then the **return** is the pasting of **argument** into all occourences of it or, if it's an `object`, only the remaining variables from step `4.` will be pasted
+    8. Otherwise **component** is returned
 
 > A variable is any word starting with dollar sign (`$`) and may contain `_`.
 > After replacing variables all unused variables are discarted into `_` the variable (if present).
@@ -56,6 +57,7 @@ comp6:
   props: $_
 ```
 
+- Calling **component** `comp1` with **argument** `"Alice"}` you get `"Hello, Alice"`.
 - Calling **component** `comp1` with **argument** `{"name": "Alice"}` you get `"Hello, Alice"`.
 - Calling **component** `comp2` with **argument** `["d", "e"]` you get `["a", "b", "c", "d", "e"]`.
 - Calling **component** `comp3` with **argument** `{"name": "Bob", "last": "Rock"}` you get `["Hello, Bob", {"full_name": "Bob Rock", "year": 2026}, null, 123]`.
@@ -99,10 +101,6 @@ Calling `users` you get the list of users in your database.
 
 5. You can shortcut the call to other components using it's name with the prefix `yx-`.
 
-> **Parameter shortcut rule:**
-> If **argument** is not a **sequence** it must have only one varial 
-> If **component** has only one variable, the applied **argument** is an object with only one key equals to the **component** variable and value equals to the original **argument**.
-
 Example: The example of item `3.` can be shortcuted to
 
 ```yml
@@ -110,6 +108,30 @@ div: <div>$body</div>
 comp:
   yx-div: Hello World!
 ```
+
+The same result could be obtained with
+
+```yml
+div: <div>$body</div>
+comp:
+  yx-div: null
+  body: Hello World!
+```
+
+In the first example `div` is being called with `"Hello World!"` as argument, in the second one with `{"default": null, "body": "Hello World!"}`.
+
+Example:
+
+```yml
+div: <div class="$class" $action>$body</div>
+comp:
+  yx-div: Hello World!
+  class: bg-red-500
+  action: onclick="alert("clicked!")"
+```
+
+Because, `body` is the remaining variable it's deducted to be `"Hello World!"`, the default variable value.
+
 
 5. Components can have templates by just creating components with the same name but starting with `$`. This is useful to hide call details on the template leting the interface on the component. The component calls the template after all calls.
 

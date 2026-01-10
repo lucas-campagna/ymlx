@@ -8,9 +8,8 @@ app:
     hx-push: "/add-item"
     hx-vals: 'js:{desc: document.getElementById("item-desc").value}'
     hx-target: "#item-list"
-  - yx-from: ul
+  - yx-ui: yx-get-items
     id: item-list
-    body: yx-get-items
   
 list-item:
   class: flex justify-between items-center p-2 border-b

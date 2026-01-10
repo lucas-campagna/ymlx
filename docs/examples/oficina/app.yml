@@ -1,5 +1,3 @@
-# app.yml
-
 $(body): yx-App
 
 App:
@@ -68,7 +66,7 @@ Tabs:
   body:
     - yx-from: TabList
       tabs: $tabs
-    - yx-TabContent
+    - yx-TabContent: $tabs[0].route
 
 TabButton:
   hx-get: $route
@@ -86,4 +84,4 @@ TabList:
 TabContent:
   id: tab-content
   style: "margin-top: 20px; border: 1px solid #ccc; padding: 15px;"
-  yx-div: "Clique em uma aba para carregar o conteúdo..."
+  yx-div: $default
