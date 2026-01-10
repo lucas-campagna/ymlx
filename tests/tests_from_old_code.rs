@@ -1,5 +1,5 @@
-use htymlx::parser::Parser;
-use htymlx::render::html;
+use ymx::parser::Parser;
+use ymx::render::html;
 use log::debug;
 use rust_yaml::Value;
 
