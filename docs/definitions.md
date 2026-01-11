@@ -19,11 +19,11 @@ Example: calling `comp` from previous example you get the string `"Hello World!"
 3. Components can be called with arguments, the result depends on the **component** and **argument** types. The following rules are applied in order:
 
     1. **argument** is **null**, then **component** value is returned
-    2. **argument** is **object** and **component** has any valid and common variable with the **arguments**, the result is the replacement of **argument** variables into **component** variables
-    3. **component** and **argument** are **sequence**s, the result is the concatenation of **component** with **argument**
-    4. **component** or **argument** is **sequence**, the result is a call to each **sequence** item using the other non-**sequence** counterpart as **component** or **argument**
-    5. **component** has only one valid variable, the result is the application of **argument** into this **component**
-    6. **argument** and **component** are **object**s, the result is the result of assignment of **argument** into **component**
+    2. **component** has only one valid variable, the result is the application of **argument** into this **component**
+    3. **argument** is **object** and **component** has any valid and common variable with the **arguments**, the result is the replacement of **argument** variables into **component** variables
+    4. **argument** and **component** are **object**s, the result is the result of assignment of **argument** into **component**
+    5. **component** and **argument** are **sequence**s, the result is the concatenation of **component** with **argument**
+    6. **component** or **argument** is **sequence**, the result is a call to each **sequence** item using the other non-**sequence** counterpart as **component** or **argument**
     7. **component** contains `_` variable, then the **return** is the pasting of **argument** into all occourences of it or, if it's an `object`, only the remaining variables from step `4.` will be pasted
     8. Otherwise **component** is returned
 
