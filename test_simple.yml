@@ -1,0 +1,2 @@
+component: Hello $name!
+result: $default!

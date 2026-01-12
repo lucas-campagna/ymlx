@@ -1,0 +1,8 @@
+greeting: Hello World!
+number_component: 42
+boolean_component: true
+null_component: null
+array_component: [1, 2, 3]
+object_component:
+  key1: value1
+  key2: value2
