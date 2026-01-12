@@ -17,10 +17,53 @@ wasm-bindgen = "0.2"
 js-sys = "0.3"
 web-sys = "0.3"
 console_error_panic_hook = "0.1"
+wasm-bindgen-test = "0.3"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+tempfile = "3.0"
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["rt-multi-thread", "time"] }
 
 [[bin]]
 name = "ymx"
 path = "src/main.rs"
+
+[[test]]
+name = "simple"
+path = "tests/tests.rs"
+
+[[test]]
+name = "parsers_comprehensive"
+path = "tests/parsers_comprehensive.rs"
+
+[[test]]
+name = "component_execution"
+path = "tests/component_execution.rs"
+
+[[test]]
+name = "property_substitution"
+path = "tests/property_substitution.rs"
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+
+[[test]]
+name = "edge_cases"
+path = "tests/edge_cases.rs"
+
+[[test]]
+name = "performance_tests"
+path = "tests/performance_tests.rs"
+
+[[test]]
+name = "security_tests"
+path = "tests/security_tests.rs"
+
+[[test]]
+name = "wasm"
+path = "tests/wasm.rs"
 
 [profile.release]
 opt-level = "z"

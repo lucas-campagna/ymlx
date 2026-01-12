@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ComponentValue {
     Literal(String),
     PropertyReference(String),           
@@ -9,7 +9,7 @@ pub enum ComponentValue {
     Template(String),                    
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ComponentCall {
     pub target: String,
     pub properties: HashMap<String, ComponentValue>,
@@ -208,7 +208,7 @@ fn substitute_properties(
     }
 }
 
-fn substitute_in_string(template: &str, context: &HashMap<String, String>) -> Result<String, String> {
+pub fn substitute_in_string(template: &str, context: &HashMap<String, String>) -> Result<String, String> {
     let mut result = String::new();
     let mut chars = template.chars().peekable();
     
