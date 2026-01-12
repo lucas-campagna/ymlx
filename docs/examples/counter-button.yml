@@ -1,7 +1,6 @@
-$(#root):
-  app: 0
-
 app:
-  button: "Clicks: $body"
-  hx-get: "/app?body=${$body+1}"
-  hx-swap: "outerHTML"
+  yx-Button: 0
+
+Button:
+  yx-button: "Clicks: $count"
+  hx-get: /app?count=${count+1}

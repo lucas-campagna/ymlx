@@ -1,19 +1,37 @@
-$(#root): app
+# Todo List Example HTMX Application
 
 app:
-  - from: input
+  - yx-from: input
     id: item-desc
     placeholder: "Item description"
-  - button: "Add"
+  - yx-button: "Add"
     hx-push: "/add-item"
     hx-vals: 'js:{desc: document.getElementById("item-desc").value}'
-    hx-swap: "afterend"
     hx-target: "#item-list"
-  - ul:
-      id: "item-list"
+  - yx-ui: yx-get-items
+    id: item-list
+  
+list-item:
+  class: flex justify-between items-center p-2 border-b
+  id: "item-$id"
+  yx-li: 
+    - yx-span: $description
+    - yx-delete-button: $id
 
-add-item:
-  from: sql
-  query: INSERT INTO todo_items (description) VALUES ($desc); SELECT * FROM todo_items;
-  body:
-    li: $description
+delete-button:
+  yx-button: "Delete"
+  hx-push: "/delete-item"
+  hx-vals: 'js:{id: $id}'
+  hx-target: "#item-list"
+
+get-items(sql): SELECT id, description FROM todo_items
+
+update-items(pipe):
+  - yx-sql: $query;SELECT id, description FROM todo_items
+  - yx-list-item
+
+delete-item(update-items):
+  DELETE FROM todo_items WHERE id = $id
+  
+add-item(update-items):
+  INSERT INTO todo_items (description) VALUES ($desc)

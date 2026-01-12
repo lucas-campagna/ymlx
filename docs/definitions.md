@@ -1,255 +1,205 @@
-# htymlx
+# ymx
+
+YMX is a component parser system, using a declarative language.
 
 ## Definitions
 
-1. Every component is a key/pair item in the main body.
-2. To define the component tag use the `from` property.
-3. To define the component children use the `body` property.
+1. Every component is a key/value pair item in the main body.
 
 Example:
 
 ```yml
-box:
-  from: div
+comp: Hello World!
+```
+
+2. You can call a component from its key (name) and you get its value:
+
+Example: calling `comp` from previous example you get the string `"Hello World!"`.
+
+3. Components are called with properties by passing an `object` as unique argument. To access the properties you use `$<property_name>` (`$<property_name>` matches `\$w+`)
+
+```yml
+comp: Hello $who
+```
+
+Calling `comp` with `{"who": "World"}` you get `"Hello World"`
+
+4. The `default` property maps to the hole argument.
+
+Example:
+
+```yml
+comp: Hello $default
+```
+
+Calling `comp` with:
+  - `"World"` -> `"Hello World"`
+  - `123` -> `"Hello 123"`
+  - `["W", "o", "r", "l", "d"]` -> `"Hello ["W", "o", "r", "l", "d"]"`
+  - `{"who": "World"}` -> `"Hello {"who": "World"}"`
+
+> You could write
+
+```yml
+comp: Hello ${default.who}
+```
+
+And call it with `{"who": "World"}` so you get the same result.
+
+5. You can do more complex thigs inside processing contexts `${` and `}`.
+
+Example:
+
+```yml
+comp: ${a + b}
+```
+
+Calling `comp` with `{"a": 1, "b": 2}` you get `3`
+
+> Because components are just functions you can call them inside `${` and `}`:
+
+Example:
+
+```yml
+fibo: "${n < 2 ? 1 : n + fibo(n - 1)}"
+main: Math is cool because fibo of 10 is ${fibo({"n":10})}
+```
+
+Calling `main` you get `"Math is cool because fibo of 10 is 55"`
+
+> The available commands and code format running inside `${` and `}` depends on the interpreter you choose before hand, on the example above we choose [Boa js](https://boajs.dev/) but you could choose [RustPython](https://rustpython.github.io/) to run Python.
+> In fact, the above `$<property_name>` is just a shortcut for `${property_name}`, before the yaml string is parsed all `\$(\w+)` is rewriten to `\${\1}`, where `\1` is the match content inside parentesis.
+
+6. You can automate component calling by using the `from!` or `yx-from` or `From` property.
+
+Example:
+
+```yml
+div: <div>$body</div>
+comp:
+  from!: div
   body: Hello World!
 ```
 
-If we render the `box` component, we will get `<div>Hello World!</div>`.
+When `comp` is called it calls `div` component with `{"body": "Hello World!"}` as argument, which returns `<div>Hello Word!</div>`, then it's returned to the first (`comp`) call.
 
-4. Any other property will be added to the tag attribute
-
-Example:
-
-```yml
-box:
-  from: div
-  class: bg-red-100 p-2
-  body: Hello World!
-```
-
-Will be rendered to `<div class="bg-red-100 p-2">Hello World!</div>`.
-
-5. Any word (with underscore `_`) starting with `$` is considered as property, and can be replaced in the future
-
-Example:
-
-```yml
-box:
-  from: div
-  class: $color p-2
-  body: Hello World!
-```
-
-> When rendering you can provide the value of `color` and get whatever value do you want.
-> You can use as many properties as you want.
-
-6. You can parse strings using `${}`
-
-Example:
-
-```yml
-box:
-  body: "${$count+1}"
-```
-
-Rendering `box` with `count=10` you get `11`.
-
-7. Components can inherit another components using `from`, it overwrites the base component properties
-
-Example:
-
-```yml
-box1:
-  from: div
-  body: Hello World!
-box:
-  from: box1
-  body: World, Hello!
-```
-
-Rendering `box` you get `<div>Hello World!</div>`, `box1` you get `<div>World, Hello!</div>`.
-
-8. Inheritance also applies properties
-
-Example:
-
-```yml
-box1:
-  from: div
-  body: Hello, $name!
-box:
-  from: box1
-  name: James
-```
-
-Rendering `box` you get `<div>Hello, James!</div>`.
-
-9. Components inside body renders inner components
-
-Example:
-
-```yml
-box:
-  from: span
-  body:
-    from: strong
-    body: Hello World!
-```
-
-Rendering `box` you get `<span><strong>Hello World!</strong></span>`.
-
-10. Bodies can be array
-
-Example:
-
-```yml
-box:
-  from: span
-  body:
-    - from: strong
-      body: "Hello "
-    - from: i
-      body: World!
-```
-
-Rendering `box` you get `<span><strong>Hello </strong><i>World!</i></span>`.
-
-11. Components with only `body` produces fragmented components
-
-Example:
-
-```yml
-box:
-  body:
-    - from: strong
-      body: "Hello "
-    - from: i
-      body: World!
-```
-
-Rendering `box` you get `<strong>Hello </strong><i>World!</i>`.
-
-12. Components can be templated creating a component with same name but starting with `$`
-
-> A template is acts as a base class
-
-Example:
-
-```yml
-$box:
-  from: div
-  body: Hello, $name!
-box:
-  name: James
-```
-
-Rendering `box` you get `<div>Hello, James!</div>`.
-
-13. In fragment templated componets the template is applied to `body`
-
-Example:
-
-```yml
-$box:
-  from: div
-  body: Hello, $name!
-box:
-  body:
-    - name: God
-    - name: Adam
-    - name: Eve
-```
-
-Rendering `box` you get `<div>Hello, God!</div><div>Hello, Adam!</div><div>Hello, Eve!</div>`.
-
-14. You can shorcut fragmented components by omitting the `body` tag:
-
-Example:
-
-```yml
-box: ,.\
-  - from: div
-    body: 1
-  - from: span
-    body: 2
-  - from: p
-    body: 3
-```
-
-Rendering `box` you get `<div>1</div><span>2</span><p>3</p>`
-
-15. `from` and `body` can be shortcuted by providing a key with the component name and the body as its value
-
-Example:
-
-```yaml
-box1: This is a text
-box2:
-  p: This is a paragraph!
-box3:
-  - div: First child
-  - span: Second child
-    class: flex justify-content
-  - box1: null
-  - box2: New paragraph
-```
-
-Rendering `box1` you get `This is a text`.
-Rendering `box2` you get `<p>This is a paragraph!</p>`.
-Rendering `box3` you get `<div>First child</div><span class="flex justify-content">Second child</span>This is a text<p>New paragraph</p>`.
-
-16. Components can be used in other ones by just providing its name in the body
-
-Example:
-
-```yml
-box1: Component 1
-box2: Component 2
-box3: box1
-box4:
-  p: box2
-box5:
-  - box1
-  - div: box2
-    class: bg-black
-  - box4
-  - from: box4
-    class: bg-red-100
-```
-
-Rendering `box3` you get `Component 1`.
-Rendering `box4` you get `<p>Component 2</p>`.
-Rendering `box5` you get `Component 1<div class="bg-black">Element2</div><p>Component 2</p><p class="bg-red-100">Component 2</p>Final component`.
-
-17. Entry points can be specified using css selectors on keys with format `$(<css-selector>)`
-
-Example:
-
-```yml
-$(#root): app
-app:
-  div: Hello world!
-```
-
-It renders `<div>Hello world!</div>` inside the element with id `root`.
-
-18. Components can be functions to be called with expected arguments
+7. Components can be functions to be called with expected arguments
 
 Example:
 
 ```rs
-fn sql(query: String) -> Result<String> {
-  conn.execute(query)?
+fn sql(args: Props) -> Vec[String] {
+  let query = args.query;
+  conn.execute(query).unwrap()
 }
 ```
 
 ```yml
-app:
-  ol:
-    from: sql
-    query: SELECT name FROM users;
-    body:
-      li: $name
+Users:
+  From: sql
+  query: SELECT name FROM users
 ```
 
-Rendering `app` you could get `<ol><li>God</li><li>Adam</li><li>Eve</li></ol>`
+Calling `Users` you get the list of users in your database.
+
+8. You can shortcut the call to other components using it's name with the prefix `yx-` or appending `!` at the end or just writing it with first letter in uppercase.
+
+Example: The example of item `6.` can be shortcuted to
+
+```yml
+div: <div>$default</div>
+comp:
+  div!: Hello World!
+```
+
+The same result could be obtained with
+
+```yml
+div: <div>$body</div>
+comp:
+  yx-div: null
+  body: Hello World!
+```
+
+In the first example `div` is being called with `"Hello World!"` as argument, in the second one with `{"default": null, "body": "Hello World!"}`.
+
+Example:
+
+```yml
+div: <div class="$class" $action>$default</div>
+comp:
+  yx-div: Hello World!
+  class: bg-red-500
+  action: onclick="alert("clicked!")"
+```
+
+9. Call to components can be simplified in the caller component name by using the caller betewen brackets `()`.
+
+Example: The last example can be written as
+
+```yml
+div: <div>$default</div>
+comp(div): Hello World!
+```
+
+5. In order to hide implementation details components can have templates by just creating components with the same name but starting with `$`. Template are just a last component call component.
+
+Example: The last example can be rewritten using templates
+
+```yml
+$comp: <div>$default</div>
+comp: Hello World!
+```
+
+10. You can define generic components using RegEx just by starting the name with `~`
+
+> Before calling the component itself a first call is performed to replace `$name` with the component name.
+
+Example:
+
+```yml
+~\$(a|b)c: "$name: $value"
+ac: foo
+bc: bar
+app:
+  - ac!
+  - bc!
+```
+
+Here we are defining the template components `$ac` and `$bc`. Calling `app` we get `["$ac: foo", "$bc: bar"]`.
+
+10. Property substitution follow the expected usage of the value in the component
+
+Example:
+
+```yaml
+comp: $prop
+```
+
+- Calling `comp` with `prop` as 'Hello World', you obtain the string 'Hello World'.
+- Calling it with `{"a": 1}`, you get the object `{"a": 1}`
+- Calling with sequence, you get a sequence
+
+11. You can merge objects with the key `..`
+
+Example:
+
+```yml
+comp:
+  a: 1
+  ..: $prop
+```
+
+Calling `comp` with `prop` as `{"b": 2}`, you get `{"a": 1, "b": 2}`, otherwise you get an object with key `".."` and value as the one from `props`
+
+The same applies for sequences, you just need to pre-append the variable with `..`:
+
+Example:
+
+```yml
+comp:
+  - 1
+  - ..$prop
+```
+
+Calling `comp` with `[2,3]` you get `[1, 2, 3]`. The other valid value is string, you get the concatenation of `".."` with the string from `prop`. Otherwise you get an error.
