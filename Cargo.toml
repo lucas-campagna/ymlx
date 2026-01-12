@@ -48,6 +48,8 @@ javascript = ["boa_engine", "boa_runtime"]
 python = ["pyo3"]
 wasm = ["yaml", "javascript"]
 minimal = ["yaml"]
+cli = ["yaml", "javascript", "python"]
+library = ["yaml", "javascript", "python"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

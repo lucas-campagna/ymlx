@@ -1,4 +1,7 @@
-use figment::{Figment, providers::{Serialized, Toml, Json, Env}};
+use figment::{
+    providers::{Env, Json, Serialized, Toml},
+    Figment,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -8,16 +11,16 @@ use std::time::Duration;
 pub struct CliConfig {
     #[serde(default = "default_output_format")]
     pub default_output_format: OutputFormat,
-    
+
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u64,
-    
+
     #[serde(default = "default_memory_limit")]
     pub memory_limit_mb: usize,
-    
+
     #[serde(default)]
     pub component_paths: Vec<PathBuf>,
-    
+
     #[serde(default)]
     pub security_policy: SecurityPolicyConfig,
 }
@@ -25,9 +28,9 @@ pub struct CliConfig {
 impl Default for CliConfig {
     fn default() -> Self {
         Self {
-            default_output_format: OutputFormat::Json,
-            timeout_seconds: 30,
-            memory_limit_mb: 100,
+            default_output_format: OutputFormat::default(),
+            timeout_seconds: default_timeout(),
+            memory_limit_mb: default_memory_limit(),
             component_paths: Vec::new(),
             security_policy: SecurityPolicyConfig::default(),
         }
@@ -39,13 +42,13 @@ impl Default for CliConfig {
 pub struct SecurityPolicyConfig {
     #[serde(default)]
     pub allow_file_access: bool,
-    
+
     #[serde(default)]
     pub allow_network_access: bool,
-    
+
     #[serde(default = "default_max_execution_time")]
     pub max_execution_time_ms: u64,
-    
+
     #[serde(default = "default_max_memory")]
     pub max_memory_mb: usize,
 }
@@ -55,8 +58,8 @@ impl Default for SecurityPolicyConfig {
         Self {
             allow_file_access: false,
             allow_network_access: false,
-            max_execution_time_ms: 5000,
-            max_memory_mb: 10,
+            max_execution_time_ms: default_max_execution_time(),
+            max_memory_mb: default_max_memory(),
         }
     }
 }
@@ -82,10 +85,10 @@ impl Default for OutputFormat {
 pub struct WasmConfig {
     #[serde(default)]
     pub enable_features: WasmFeatures,
-    
+
     #[serde(default = "default_performance_mode")]
     pub performance_mode: PerformanceMode,
-    
+
     #[serde(default = "default_security_level")]
     pub security_level: SecurityLevel,
 }
@@ -94,8 +97,8 @@ impl Default for WasmConfig {
     fn default() -> Self {
         Self {
             enable_features: WasmFeatures::default(),
-            performance_mode: PerformanceMode::Balanced,
-            security_level: SecurityLevel::Standard,
+            performance_mode: PerformanceMode::default(),
+            security_level: SecurityLevel::default(),
         }
     }
 }
@@ -105,10 +108,10 @@ impl Default for WasmConfig {
 pub struct WasmFeatures {
     #[serde(default)]
     pub simd: bool,
-    
+
     #[serde(default)]
     pub threads: bool,
-    
+
     #[serde(default = "default_bulk_memory")]
     pub bulk_memory: bool,
 }
@@ -118,7 +121,7 @@ impl Default for WasmFeatures {
         Self {
             simd: true,
             threads: false,
-            bulk_memory: true,
+            bulk_memory: default_bulk_memory(),
         }
     }
 }

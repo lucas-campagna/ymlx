@@ -1,17 +1,7 @@
-[lints.rust]
-# Dangerous lints
-unsafe_code = "forbid"
+use colored::*;
 
-# Style lints
-dead_code = "warn"
-unused_imports = "warn"
-unused_variables = "warn"
-
-[lints.clippy]
-# Performance
-perf = "warn"
-uninlined_format_args = "warn"
-
-# Correctness
-all = "warn"
-pedantic = "warn"
+edition = "2024"
+hard_tabs = true
+max_width = 100
+merge_imports = true
+newline_style = "Unix"

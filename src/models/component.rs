@@ -1,8 +1,8 @@
+use crate::error::{Result, YmxError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
-use crate::error::{YmxError, Result};
 
 /// Component ID wrapper
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -19,10 +19,10 @@ impl std::fmt::Display for ComponentId {
 #[serde(tag = "type", content = "content")]
 pub enum ComponentValue {
     Literal { content: String },
-    PropertyReference { property: String },           // $property_name
-    ProcessingContext { code: String },              // ${javascript_code}
-    ComponentCall(ComponentCall),                     // from!, yx-from, From
-    Template { pattern: String },                    // Generic component with ~ prefix
+    PropertyReference { property: String }, // $property_name
+    ProcessingContext { code: String },     // ${javascript_code}
+    ComponentCall(ComponentCall),           // from!, yx-from, From
+    Template { pattern: String },           // Generic component with ~ prefix
 }
 
 /// Component call structure
@@ -35,10 +35,10 @@ pub struct ComponentCall {
 /// Component metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComponentMetadata {
-    pub is_template: bool,               // $ prefix
-    pub is_generic: bool,                // ~ prefix
-    pub interpreter: Option<Interpreter>,  // JavaScript or Python
-    pub dependencies: Vec<String>,         // Called components
+    pub is_template: bool,                // $ prefix
+    pub is_generic: bool,                 // ~ prefix
+    pub interpreter: Option<Interpreter>, // JavaScript or Python
+    pub dependencies: Vec<String>,        // Called components
 }
 
 /// Interpreter types
@@ -77,7 +77,7 @@ impl SourceLocation {
             span,
         }
     }
-    
+
     pub fn display(&self) -> String {
         format!("{}:{}:{}", self.file.display(), self.line, self.column)
     }
@@ -134,35 +134,35 @@ impl Value {
             _ => None,
         }
     }
-    
+
     pub fn as_number(&self) -> Option<f64> {
         match self {
             Value::Number(n) => Some(*n),
             _ => None,
         }
     }
-    
+
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Value::Bool(b) => Some(*b),
             _ => None,
         }
     }
-    
+
     pub fn as_array(&self) -> Option<&[Value]> {
         match self {
             Value::Array(arr) => Some(arr),
             _ => None,
         }
     }
-    
+
     pub fn as_object(&self) -> Option<&HashMap<String, Value>> {
         match self {
             Value::Object(obj) => Some(obj),
             _ => None,
         }
     }
-    
+
     pub fn is_truthy(&self) -> bool {
         match self {
             Value::Null => false,
@@ -173,7 +173,7 @@ impl Value {
             Value::Object(obj) => !obj.is_empty(),
         }
     }
-    
+
     pub fn merge(&self, other: &Value) -> Result<Value> {
         match (self, other) {
             (Value::Object(mut obj1), Value::Object(obj2)) => {
@@ -181,11 +181,11 @@ impl Value {
                     obj1.insert(key.clone(), value.clone());
                 }
                 Ok(Value::Object(obj1))
-            },
+            }
             (Value::Array(mut arr1), Value::Array(arr2)) => {
                 arr1.extend(arr2.clone());
                 Ok(Value::Array(arr1))
-            },
+            }
             _ => Ok(other.clone()),
         }
     }
@@ -202,9 +202,9 @@ pub struct PropertyContext {
 /// Merge strategy for properties
 #[derive(Debug, Clone)]
 pub enum MergeStrategy {
-    ObjectMerge,      // Use .. key for object merging
-    ArrayConcat,       // Prepend .. to arrays
-    Replace,          // Direct replacement
+    ObjectMerge, // Use .. key for object merging
+    ArrayConcat, // Prepend .. to arrays
+    Replace,     // Direct replacement
 }
 
 /// Component library for managing collections
@@ -249,7 +249,7 @@ pub struct DependencyEdge {
 /// Type of dependency
 #[derive(Debug, Clone, PartialEq)]
 pub enum DependencyType {
-    DirectCall,          // explicit from!, yx-from
-    PropertyReference,    // $property usage
-    ProcessingContext,   // interpreter execution
+    DirectCall,        // explicit from!, yx-from
+    PropertyReference, // $property usage
+    ProcessingContext, // interpreter execution
 }

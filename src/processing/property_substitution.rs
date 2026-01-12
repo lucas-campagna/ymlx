@@ -1,5 +1,6 @@
 use crate::models::{ComponentValue, Value};
 use crate::error::{YmxError, Result};
+use crate::utils::logging::{PerformanceTimer, get_logger};
 use std::collections::HashMap;
 
 /// Property substitution engine for YMX components
@@ -44,12 +45,8 @@ impl PropertySubstitution {
     /// Substitute properties in a string
     fn substitute_in_string(&self, input: &str, context: &HashMap<String, Value>, depth: usize) -> Result<String> {
         if depth > self.max_nesting_depth {
-            return Err(YmxError::ParseError {
-                message: "Property substitution depth exceeded limit".to_string(),
-                source: Box::new(YmxError::InvalidPropertyReference {
-                    property: "nesting_depth".to_string(),
-                }),
-                location: crate::models::SourceLocation::new("", 0, 0, 0),
+            return Err(YmxError::InterpreterError { 
+                error: "Property substitution depth exceeded limit".to_string() 
             });
         }
         
@@ -70,10 +67,10 @@ impl PropertySubstitution {
                             // Simple property reference $property
                             let (property_name, consumed) = self.extract_property_name(&mut chars)?;
                             if let Some(value) = context.get(&property_name) {
-                                result.push_str(&self.value_to_string(value)?);
+                                result.push_str(&self.value_to_string(&value)?);
                             } else {
                                 return Err(YmxError::InvalidPropertyReference {
-                                    property: property_name,
+                                    property: property_name.to_string(),
                                 });
                             }
                             chars = consumed;
@@ -102,7 +99,7 @@ impl PropertySubstitution {
                 consumed_chars.push(ch);
             } else {
                 // Put back the non-property character
-                return Ok((name, std::iter::once(ch).chain(consumed_chars.into_iter()).chain(chars).collect()));
+                return Ok((name, std::iter::once('$').chain(consumed_chars.into_iter()).collect()));
             }
         }
         
@@ -129,12 +126,8 @@ impl PropertySubstitution {
                     expression.push(ch);
                 }
             } else {
-                return Err(YmxError::ParseError {
-                    message: "Unterminated processing context".to_string(),
-                    source: Box::new(YmxError::InvalidPropertyReference {
-                        property: "processing_context".to_string(),
-                    }),
-                    location: crate::models::SourceLocation::new("", 0, 0, 0),
+                return Err(YmxError::InterpreterError { 
+                    error: "Unterminated processing context".to_string() 
                 });
             }
         }
@@ -153,28 +146,28 @@ impl PropertySubstitution {
     }
     
     /// Convert Value to string representation
-    fn value_to_string(&self, value: &Value) -> Result<String> {
+    fn value_to_string(&self, value: &Value) -> String {
         match value {
-            Value::String(s) => Ok(s.clone()),
-            Value::Number(n) => Ok(n.to_string()),
-            Value::Bool(b) => Ok(b.to_string()),
-            Value::Null => Ok("null".to_string()),
+            Value::String(s) => s.clone(),
+            Value::Number(n) => n.to_string(),
+            Value::Bool(b) => b.to_string(),
+            Value::Null => "null".to_string(),
             Value::Array(arr) => {
                 let strings: Result<Vec<String>> = arr
                     .iter()
                     .map(|v| self.value_to_string(v))
                     .collect();
-                Ok(format!("[{}]", strings?.join(", ")))
+                format!("[{}]", strings.unwrap_or_default())
             },
             Value::Object(obj) => {
                 let pairs: Result<Vec<String>> = obj
                     .iter()
                     .map(|(k, v)| {
-                        let value_str = self.value_to_string(v)?;
-                        Ok(format!("\"{}\": {}", k, value_str))
+                        let value_str = self.value_to_string(v);
+                        format!("\"{}\": {}", k, value_str)
                     })
                     .collect();
-                Ok(format!("{{{}}}", pairs?.join(", ")))
+                format!("{{{}}}", pairs.unwrap_or_default())
             },
         }
     }
@@ -205,12 +198,8 @@ impl PropertySubstitution {
                         target.insert(spread_key.clone(), spread_value.clone());
                     }
                 } else {
-                    return Err(YmxError::ParseError {
-                        message: "Object spread (..) must be used with an object".to_string(),
-                        source: Box::new(YmxError::InvalidPropertyReference {
-                            property: "object_spread".to_string(),
-                        }),
-                        location: crate::models::SourceLocation::new("", 0, 0, 0),
+                    return Err(YmxError::InterpreterError { 
+                        error: "Object spread (..) must be used with an object".to_string() 
                     });
                 }
             } else {
@@ -218,11 +207,5 @@ impl PropertySubstitution {
             }
         }
         Ok(())
-    }
-}
-
-impl Default for PropertySubstitution {
-    fn default() -> Self {
-        Self::new()
     }
 }

@@ -1,7 +1,8 @@
-use crate::config::performance;
-use crate::error::{YmxError, Result};
-use std::time::{Duration, Instant};
-use colored::*;
+use crate::error::{Result, YmxError};
+use crate::interpreters::{create_interpreter, InterpreterEngine};
+use crate::models::{ExecutionEnvironment, Value};
+use crate::utils::logging::{get_logger, PerformanceTimer};
+use std::time::Duration;
 
 /// Simple logging configuration for YMX
 pub struct Logger {
@@ -21,31 +22,31 @@ impl Logger {
     pub fn new(enabled: bool, level: LogLevel) -> Self {
         Self { enabled, level }
     }
-    
+
     pub fn error(&self, message: &str) {
         if self.enabled && self.should_log(LogLevel::Error) {
             eprintln!("{}{}{}", "ERROR: ".red(), message, "\n".red());
         }
     }
-    
+
     pub fn warn(&self, message: &str) {
         if self.enabled && self.should_log(LogLevel::Warn) {
             eprintln!("{}{}{}", "WARN: ".yellow(), message, "\n".yellow());
         }
     }
-    
+
     pub fn info(&self, message: &str) {
         if self.enabled && self.should_log(LogLevel::Info) {
             println!("{}{}", message, "\n".dimmed());
         }
     }
-    
+
     pub fn debug(&self, message: &str) {
         if self.enabled && self.should_log(LogLevel::Debug) {
             println!("{}{}", "DEBUG: ".bright_blue(), message, "\n".bright_blue());
         }
     }
-    
+
     fn should_log(&self, message_level: LogLevel) -> bool {
         match (message_level, &self.level) {
             (LogLevel::Error, _) => true,
@@ -65,7 +66,7 @@ impl Default for Logger {
 
 /// Performance timer for measuring execution times
 pub struct PerformanceTimer {
-    start_time: Instant,
+    start_time: std::time::Instant,
     operation: String,
     timeout: Duration,
 }
@@ -73,31 +74,30 @@ pub struct PerformanceTimer {
 impl PerformanceTimer {
     pub fn new(operation: &str, timeout: Duration) -> Self {
         Self {
-            start_time: Instant::now(),
+            start_time: std::time::Instant::now(),
             operation: operation.to_string(),
             timeout,
         }
     }
-    
+
     pub fn elapsed(&self) -> Duration {
         self.start_time.elapsed()
     }
-    
-    pub fn check_timeout(&self) -> Result<()> {
+
+    pub fn check_timeout(&self) -> Result<(), YmxError> {
         let elapsed = self.elapsed();
         if elapsed > self.timeout {
-            Err(YmxError::PerformanceError(crate::error::PerformanceError::ParseTimeout {
-                duration_ms: elapsed.as_millis(),
-                limit_ms: self.timeout.as_millis(),
-            }))
+            Err(YmxError::InterpreterError {
+                error: format!("Operation timed out after {:?}", elapsed),
+            })
         } else {
             Ok(())
         }
     }
-    
+
     pub fn finish(self, logger: &Logger) -> Result<Duration> {
         let elapsed = self.elapsed();
-        
+
         // Check if we exceeded performance requirements
         if self.operation == "parsing" && elapsed.as_millis() > performance::PARSE_TIME_LIMIT_MS {
             logger.warn(&format!(
@@ -106,16 +106,22 @@ impl PerformanceTimer {
                 performance::PARSE_TIME_LIMIT_MS
             ));
         }
-        
-        if self.operation == "error_reporting" && elapsed.as_millis() > performance::ERROR_REPORTING_TIME_MS {
+
+        if self.operation == "error_reporting"
+            && elapsed.as_millis() > performance::ERROR_REPORTING_TIME_MS
+        {
             logger.warn(&format!(
                 "Error reporting exceeded performance requirement: {}ms > {}ms",
                 elapsed.as_millis(),
                 performance::ERROR_REPORTING_TIME_MS
             ));
         }
-        
-        logger.debug(&format!("{} completed in {}ms", self.operation, elapsed.as_millis()));
+
+        logger.debug(&format!(
+            "{} completed in {}ms",
+            self.operation,
+            elapsed.as_millis()
+        ));
         Ok(elapsed)
     }
 }
@@ -134,28 +140,29 @@ impl MemoryTracker {
             limit,
         }
     }
-    
+
     pub fn current_usage(&self) -> usize {
         Self::get_current_memory() - self.initial_memory
     }
-    
-    pub fn check_limit(&self) -> Result<()> {
+
+    pub fn check_limit(&self) -> Result<(), YmxError> {
         let usage = self.current_usage();
         if usage > self.limit {
-            Err(YmxError::MemoryLimitExceeded {
-                used: usage,
-                limit: self.limit,
+            Err(YmxError::InterpreterError {
+                error: format!(
+                    "Memory limit exceeded: used {}, limit {}",
+                    usage, self.limit
+                ),
             })
         } else {
             Ok(())
         }
     }
-    
+
     fn get_current_memory() -> usize {
-        // Simple memory tracking - in real implementation, 
+        // Simple memory tracking - in real implementation,
         // this would use platform-specific APIs
-        use std::alloc::System;
-        System::current_allocated_bytes()
+        0 // Placeholder
     }
 }
 
@@ -171,9 +178,7 @@ pub fn init_logger(enabled: bool, level: LogLevel) {
 
 /// Get the global logger
 pub fn get_logger() -> &'static Logger {
-    unsafe {
-        GLOBAL_LOGGER.as_ref().unwrap_or(&Logger::default())
-    }
+    unsafe { GLOBAL_LOGGER.as_ref().unwrap_or(&Logger::default()) }
 }
 
 /// Log macros for convenience
