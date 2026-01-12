@@ -1,31 +1,64 @@
-use crate::lib::component::{execute_component, parse_yaml_content};
-use std::env;
+use clap::Parser;
+use ymx::{parse_yaml_content};
+use ymx::component::execute_component;
 use std::collections::HashMap;
 
+#[derive(Parser, Debug)]
+#[command(name = "ymx")]
+#[command(about = "YMX component integration system", long_about = None)]
+#[command(version = "0.1.0")]
+struct Args {
+    /// The component to call
+    #[arg(short, long)]
+    caller: String,
+
+    /// YAML file containing components
+    #[arg(short, long)]
+    file: String,
+
+    /// Properties to pass to the component (format: key=value)
+    #[arg(short = 'p', long, value_parser = parse_key_val)]
+    property: Vec<(String, String)>,
+
+    /// Verbose output
+    #[arg(short, long)]
+    verbose: bool,
+}
+
+/// Parse a single key-value pair
+fn parse_key_val(s: &str) -> Result<(String, String), String> {
+    let pos = s.find('=')
+        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{}`", s))?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+}
+
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let args = Args::parse();
     
-    if args.len() < 2 {
-        eprintln!("Usage: ymx <component_file> [--property key=value ...]");
-        std::process::exit(1);
-    }
-    
-    let file_path = &args[1];
-    let mut context = HashMap::new();
-    
-    // Parse additional properties
-    for arg in &args[2..] {
-        if let Some((key, value)) = arg.split_once('=') {
-            context.insert(key.to_string(), value.to_string());
+    if args.verbose {
+        eprintln!("Calling component: {}", args.caller);
+        eprintln!("Using file: {}", args.file);
+        if !args.property.is_empty() {
+            eprintln!("Properties:");
+            for (key, value) in &args.property {
+                eprintln!("  {}={}", key, value);
+            }
         }
     }
     
+    // Convert properties to HashMap
+    let mut context = HashMap::new();
+    for (key, value) in args.property {
+        context.insert(key, value);
+    }
+    context.insert("caller".to_string(), args.caller.clone());
+    
     // Parse and execute component
-    match std::fs::read_to_string(file_path) {
+    match std::fs::read_to_string(&args.file) {
         Ok(content) => {
-            match parse_yaml_content(content) {
+            match parse_yaml_content(&content) {
                 Ok(components) => {
-                    if let Some(component) = components.first() {
+                    if let Some(component) = components.iter().find(|c| c.name == args.caller) {
                         match execute_component(component, &context) {
                             Ok(result) => {
                                 println!("{}", result);
@@ -37,11 +70,14 @@ fn main() {
                             }
                         }
                     } else {
-                        eprintln!("No components found in file");
+                        eprintln!("Component '{}' not found in file", args.caller);
+                        eprintln!("Available components:");
+                        for component in &components {
+                            eprintln!("  - {}", component.name);
+                        }
                         std::process::exit(1);
                     }
                 }
-                },
                 Err(e) => {
                     eprintln!("Parse error: {}", e);
                     std::process::exit(1);

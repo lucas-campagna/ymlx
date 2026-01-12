@@ -32,7 +32,7 @@ pub fn parse_yaml_content(content: &str) -> Result<Vec<YMXComponent>, String> {
         for (key, value) in mapping {
             if let Some(key_str) = key.as_str() {
                 let component_name = key_str.to_string();
-                let component_value = parse_yaml_value(value)?;
+                let component_value = parse_yaml_value(&value)?;
                 
                 components.push(YMXComponent {
                     id: component_name.clone(),
@@ -89,15 +89,28 @@ fn parse_yaml_value(value: &serde_yaml::Value) -> Result<ComponentValue, String>
                     }
                 }
                 
-                Ok(ComponentValue::Literal(serde_yaml::to_string(&serde_yaml::Value::Object(&properties))?))
+                Ok(ComponentValue::Literal(serde_yaml::to_string(&serde_yaml::Value::Mapping(
+                    serde_yaml::Mapping::from_iter(
+                        properties.iter().map(|(k, v)| {
+                            let yaml_value = match v {
+                                ComponentValue::Literal(s) => serde_yaml::Value::String(s.clone()),
+                                ComponentValue::PropertyReference(s) => serde_yaml::Value::String(format!("${}", s)),
+                                ComponentValue::ProcessingContext(s) => serde_yaml::Value::String(s.clone()),
+                                ComponentValue::ComponentCall(_) => serde_yaml::Value::String("[ComponentCall]".to_string()),
+                                ComponentValue::Template(s) => serde_yaml::Value::String(s.clone()),
+                            };
+                            (serde_yaml::Value::String(k.clone()), yaml_value)
+                        })
+                    )
+                )).map_err(|e| e.to_string())?))
             } else {
                 // Simple literal or processing context
-                let component_str = serde_yaml::to_string(&serde_yaml::Value::Mapping(mapping))?;
+                let component_str = serde_yaml::to_string(&serde_yaml::Value::Mapping(mapping.clone())).map_err(|e| e.to_string())?;
                 
                 if component_str.contains("${") && component_str.contains('}') {
                     Ok(ComponentValue::ProcessingContext(component_str))
                 } else if component_str.starts_with('$') {
-                    Ok(ComponentValue::PropertyReference(component_str.trim_start_matches('$').unwrap().to_string()))
+                    Ok(ComponentValue::PropertyReference(component_str.trim_start_matches('$').to_string()))
                 } else {
                     Ok(ComponentValue::Literal(component_str))
                 }
@@ -109,7 +122,16 @@ fn parse_yaml_value(value: &serde_yaml::Value) -> Result<ComponentValue, String>
                 .map(|v| parse_yaml_value(v))
                 .collect();
             
-            Ok(ComponentValue::Literal(serde_yaml::to_string(&serde_yaml::Value::Array(&array_value?))?))
+            let yaml_array = serde_yaml::Sequence::from_iter(
+                array_value?.into_iter().map(|cv| match cv {
+                    ComponentValue::Literal(s) => serde_yaml::Value::String(s),
+                    ComponentValue::PropertyReference(s) => serde_yaml::Value::String(format!("${}", s)),
+                    ComponentValue::ProcessingContext(s) => serde_yaml::Value::String(s),
+                    ComponentValue::ComponentCall(_) => serde_yaml::Value::String("[ComponentCall]".to_string()),
+                    ComponentValue::Template(s) => serde_yaml::Value::String(s),
+                })
+            );
+            Ok(ComponentValue::Literal(serde_yaml::to_string(&serde_yaml::Value::Sequence(yaml_array)).map_err(|e| e.to_string())?))
         }
         serde_yaml::Value::Bool(b) => Ok(ComponentValue::Literal(b.to_string())),
         serde_yaml::Value::Number(n) => Ok(ComponentValue::Literal(n.to_string())),
@@ -141,7 +163,7 @@ pub mod component {
         component: &YMXComponent,
         context: &HashMap<String, String>,
     ) -> Result<String, String> {
-        let mut result_context = context.clone();
+        let result_context = context.clone();
         
         // Substitute properties
         if let Ok(substituted_value) = substitute_properties(&component.value, &result_context) {
@@ -179,14 +201,14 @@ fn substitute_properties(
             }
         },
         ComponentValue::ProcessingContext(code) => {
-            let substituted_code = substitute_in_string(code, context);
+            let substituted_code = substitute_in_string(code, context)?;
             Ok(ComponentValue::ProcessingContext(substituted_code))
         },
         _ => Err("Property substitution failed".to_string()),
     }
 }
 
-fn substitute_in_string(template: &str, context: &HashMap<String, String>) -> String {
+fn substitute_in_string(template: &str, context: &HashMap<String, String>) -> Result<String, String> {
     let mut result = String::new();
     let mut chars = template.chars().peekable();
     
@@ -195,18 +217,18 @@ fn substitute_in_string(template: &str, context: &HashMap<String, String>) -> St
             if let Some(next_char) = chars.peek() {
                 if *next_char == '{' {
                     // Processing context ${...}
-                    let (context_expr, _) = extract_processing_context(&mut chars)?;
+                    chars.next(); // consume '{'
+                    let context_expr = extract_processing_context(&mut chars)?;
                     result.push_str(&format!("${{{}}}", context_expr));
-                    chars = _;
                 } else {
                     // Simple property reference $property
-                    let (property_name, _) = extract_property_name(&mut chars)?;
+                    let property_name = extract_property_name(&mut chars)?;
                     if let Some(replacement) = context.get(&property_name) {
                         result.push_str(&replacement);
                     } else {
                         result.push('$');
+                        result.push_str(&property_name);
                     }
-                    chars = _;
                 }
             }
         } else {
@@ -214,19 +236,15 @@ fn substitute_in_string(template: &str, context: &HashMap<String, String>) -> St
         }
     }
     
-    result
+    Ok(result)
 }
 
-fn extract_processing_context(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<(String, std::iter::Peekable<std::str::Chars>)> {
+fn extract_processing_context(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<String, String> {
     let mut expression = String::new();
-    let mut consumed_chars = Vec::new();
-    let brace_count = 1; // We've already consumed ${
-    
-    consumed_chars.push('{');
+    let mut brace_count = 1; // We've already consumed ${
     
     while brace_count > 0 {
         if let Some(ch) = chars.next() {
-            consumed_chars.push(ch);
             match ch {
                 '{' => brace_count += 1,
                 '}' => brace_count -= 1,
@@ -241,24 +259,22 @@ fn extract_processing_context(chars: &mut std::iter::Peekable<std::str::Chars>) 
         return Err("Unterminated processing context".to_string());
     }
     
-    Ok((expression, consumed_chars.into_iter().chain(chars).collect()))
+    Ok(expression)
 }
 
-fn extract_property_name(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<(String, std::iter::Peekable<std::str::Chars>)> {
+fn extract_property_name(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<String, String> {
     let mut name = String::new();
-    let mut consumed_chars = Vec::new();
     
     while let Some(ch) = chars.next() {
         if ch.is_alphanumeric() || ch == '_' {
             name.push(ch);
-            consumed_chars.push(ch);
         } else {
             // Put back the non-property character
-            return Ok((name, std::iter::once('$').chain(consumed_chars.into_iter()).collect()));
+            return Ok(name);
         }
     }
     
-    Ok((name, consumed_chars.into_iter().chain(chars).collect()))
+    Ok(name)
 }
 
 // Error type for simplified implementation
@@ -280,7 +296,7 @@ impl std::fmt::Display for ComponentError {
 }
 
 impl std::error::Error for ComponentError {
-    fn source(&self) -> Option<std::error::Error> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             ComponentError::ParseError(_) => None,
             ComponentError::SubstitutionError(_) => None,
