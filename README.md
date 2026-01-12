@@ -27,25 +27,28 @@ The compiled binary will be available at `target/release/ymx`.
 ### Basic Usage
 
 ```bash
-ymx --caller <component_name> --file <yaml_file>
+ymx <component_name> <yaml_file>
 ```
 
 ### With Properties
 
 ```bash
-ymx --caller my_component --file components.yml --property name=World --property count=42
+ymx my_component components.yml --property name=World --property count=42
 ```
 
 ### Verbose Output
 
 ```bash
-ymx --caller my_component --file components.yml --verbose
+ymx my_component components.yml --verbose
 ```
 
 ### Command Line Options
 
-- `-c, --caller <CALLER>`: The component name to call (required)
-- `-f, --file <FILE>`: YAML file containing components (required)
+**Positional Arguments:**
+- `<CALLER>`: The component name to call (required)
+- `<FILE>`: YAML file containing components (required)
+
+**Options:**
 - `-p, --property <PROPERTY>`: Properties to pass to the component (format: key=value)
 - `-v, --verbose`: Enable verbose output
 - `-h, --help`: Print help information
@@ -124,7 +127,7 @@ goodbye: Goodbye $name!
 Run:
 
 ```bash
-ymx --caller hello --file greeting.yml --property name=Alice
+ymx hello greeting.yml --property name=Alice
 # Output: Hello $name!
 
 # Note: Property substitution needs to be implemented in the component execution
@@ -151,7 +154,7 @@ cancel_button:
 Run:
 
 ```bash
-ymx --caller submit_button --file components.yml --property text=Submit
+ymx submit_button components.yml --property text=Submit
 # Output: Called component: base_button with params: {"text": "Submit"}
 ```
 
@@ -167,7 +170,7 @@ multiply: ${a * b}
 Run:
 
 ```bash
-ymx --caller add --file math.yml --property a=5 --property b=3
+ymx add math.yml --property a=5 --property b=3
 # Output: Evaluated: ${a + b}
 ```
 
@@ -188,7 +191,7 @@ cargo test
 ### Running in Development Mode
 
 ```bash
-cargo run -- --caller component --file test.yml --property key=value
+cargo run -- component test.yml --property key=value
 ```
 
 ## Project Structure

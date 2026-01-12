@@ -9,11 +9,9 @@ use std::collections::HashMap;
 #[command(version = "0.1.0")]
 struct Args {
     /// The component to call
-    #[arg(short, long)]
     caller: String,
 
     /// YAML file containing components
-    #[arg(short, long)]
     file: String,
 
     /// Properties to pass to the component (format: key=value)
