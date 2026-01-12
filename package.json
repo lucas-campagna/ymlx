@@ -1,0 +1,32 @@
+{
+  "name": "ymx-web",
+  "version": "0.1.0",
+  "description": "YMX Component System Web Interface",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build:wasm && npm run build:web",
+    "build:wasm": "wasm-pack build --target web --out-dir pkg --release",
+    "build:web": "cp docker/index.html dist/ && cp docker/ymx.js dist/ && cp -r pkg dist/wasm",
+    "dev": "http-server dist -p 8080 -c-1",
+    "serve": "python3 -m http.server 8080",
+    "docker:build": "docker build -f Dockerfile.wasm -t ymx-web .",
+    "docker:run": "docker run -p 8080:8080 ymx-web",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "yaml",
+    "components",
+    "wasm",
+    "webassembly",
+    "rust"
+  ],
+  "author": "YMX Team",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "files": [
+    "dist/",
+    "pkg/"
+  ]
+}

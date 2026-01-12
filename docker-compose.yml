@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # CLI Service
+  ymx-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.cli
+    container_name: ymx-cli
+    volumes:
+      - ./:/workspace
+      - ./examples:/workspace/examples
+    working_dir: /workspace
+    command: ["--help"]
+    profiles:
+      - cli
+
+  # WASM Web Server
+  ymx-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.wasm
+    container_name: ymx-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./examples:/usr/share/nginx/html/examples
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - web
+
+  # Development Environment
+  ymx-dev:
+    image: rust:1.75-slim
+    container_name: ymx-dev
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    environment:
+      - CARGO_TERM_COLOR=always
+    command: ["cargo", "watch", "-x", "check"]
+    profiles:
+      - dev
+
+  # Test Runner
+  ymx-test:
+    image: rust:1.75-slim
+    container_name: ymx-test
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    command: ["cargo", "test"]
+    profiles:
+      - test
+
+  # Documentation Server
+  ymx-docs:
+    image: nginx:alpine
+    container_name: ymx-docs
+    ports:
+      - "3000:80"
+    volumes:
+      - ./target/doc:/usr/share/nginx/html/docs
+    command: ["nginx", "-g", "daemon off;"]
+    profiles:
+      - docs
+
+networks:
+  default:
+    name: ymx-network

@@ -1,0 +1,43 @@
+# Multi-stage build for YMX CLI
+FROM rust:1.75-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy source code
+COPY . .
+
+# Build the CLI binary
+RUN cargo build --release --bin ymx
+
+# Final minimal image
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 ymx
+WORKDIR /home/ymx
+
+# Copy binary from builder
+COPY --from=builder /app/target/release/ymx /usr/local/bin/ymx
+
+# Copy example files
+COPY --from=builder /app/examples ./examples
+COPY --from=builder /app/README.md .
+
+# Set ownership
+RUN chown -R ymx:ymx /home/ymx
+
+USER ymx
+
+ENTRYPOINT ["ymx"]
+CMD ["--help"]

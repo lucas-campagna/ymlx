@@ -304,3 +304,76 @@ impl std::error::Error for ComponentError {
         }
     }
 }
+
+// WASM bindings for web interface
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub struct YMXProcessor {
+    components: Vec<YMXComponent>,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+impl YMXProcessor {
+    #[wasm_bindgen(constructor)]
+    pub fn new(yaml_content: &str) -> Result<YMXProcessor, JsValue> {
+        let components = parse_yaml_content(yaml_content)
+            .map_err(|e| JsValue::from_str(&e))?;
+        Ok(YMXProcessor { components })
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_component_names(&self) -> JsValue {
+        let names: Vec<String> = self.components.iter()
+            .map(|c| c.name.clone())
+            .collect();
+        JsValue::from_serde(&names).unwrap()
+    }
+    
+    #[wasm_bindgen]
+    pub fn execute_component(&self, component_name: &str, properties: JsValue) -> Result<String, JsValue> {
+        let context: std::collections::HashMap<String, String> = properties
+            .into_serde()
+            .map_err(|e| JsValue::from_str(&format!("Invalid properties: {}", e)))?;
+        
+        if let Some(component) = self.components.iter()
+            .find(|c| c.name == component_name) {
+            component::execute_component(component, &context)
+                .map_err(|e| JsValue::from_str(&e))
+        } else {
+            Err(JsValue::from_str(&format!("Component '{}' not found", component_name)))
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn process_component_yaml(yaml_content: &str, component_name: &str, properties_array: JsValue) -> Result<String, JsValue> {
+    let processor = YMXProcessor::new(yaml_content)?;
+    processor.execute_component(component_name, properties_array)
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn validate_yaml_syntax(yaml_content: &str) -> Result<(), JsValue> {
+    parse_yaml_content(yaml_content)
+        .map(|_| ())
+        .map_err(|e| JsValue::from_str(&e))
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn parse_yaml_components(yaml_content: &str) -> Result<String, JsValue> {
+    let components = parse_yaml_content(yaml_content)
+        .map_err(|e| JsValue::from_str(&e))?;
+    
+    let component_names: Vec<String> = components.iter()
+        .map(|c| c.name.clone())
+        .collect();
+    
+    serde_json::to_string(&component_names)
+        .map_err(|e| JsValue::from_str(&e))
+}

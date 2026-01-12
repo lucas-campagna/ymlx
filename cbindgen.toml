@@ -1,0 +1,21 @@
+# cbindgen configuration for generating C headers
+language = "C"
+cpp_compat = true
+
+[parse]
+parse_deps = true
+include = ["ymx"]
+
+[fn]
+prefix = "ymx_"
+args = "Vertical"
+
+[struct]
+derive_eq = true
+
+[enum]
+prefix_with_name = true
+derive_helper_methods = true
+
+[macro_expansion]
+bitflags = true
