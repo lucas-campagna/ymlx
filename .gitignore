@@ -1,3 +1,36 @@
 /target
 .opencode
 .specify
+
+# Rust
+/target/
+debug/
+release/
+*.rlib
+*.prof*
+*.dll
+*.exe
+*.out
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Environment
+.env*
+
+# Dependencies
+Cargo.lock
+
+# Backup files
+*.bk
+*.rs.bk
+
+# OS
+.DS_Store
+Thumbs.db

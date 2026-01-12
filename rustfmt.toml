@@ -1,0 +1,17 @@
+[lints.rust]
+# Dangerous lints
+unsafe_code = "forbid"
+
+# Style lints
+dead_code = "warn"
+unused_imports = "warn"
+unused_variables = "warn"
+
+[lints.clippy]
+# Performance
+perf = "warn"
+uninlined_format_args = "warn"
+
+# Correctness
+all = "warn"
+pedantic = "warn"
