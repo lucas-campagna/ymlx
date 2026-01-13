@@ -222,12 +222,16 @@ pub fn substitute_in_string(template: &str, context: &HashMap<String, String>) -
                     result.push_str(&format!("${{{}}}", context_expr));
                 } else {
                     // Simple property reference $property
-                    let property_name = extract_property_name(&mut chars)?;
+                    let (property_name, terminating_char) = extract_property_name_with_terminator(&mut chars)?;
                     if let Some(replacement) = context.get(&property_name) {
                         result.push_str(&replacement);
                     } else {
                         result.push('$');
                         result.push_str(&property_name);
+                    }
+                    // Add back the terminating character
+                    if let Some(ch) = terminating_char {
+                        result.push(ch);
                     }
                 }
             }
@@ -275,6 +279,21 @@ fn extract_property_name(chars: &mut std::iter::Peekable<std::str::Chars>) -> Re
     }
     
     Ok(name)
+}
+
+fn extract_property_name_with_terminator(chars: &mut std::iter::Peekable<std::str::Chars>) -> Result<(String, Option<char>), String> {
+    let mut name = String::new();
+    
+    while let Some(ch) = chars.next() {
+        if ch.is_alphanumeric() || ch == '_' {
+            name.push(ch);
+        } else {
+            // Return property name and the terminating character
+            return Ok((name, Some(ch)));
+        }
+    }
+    
+    Ok((name, None))
 }
 
 // Error type for simplified implementation

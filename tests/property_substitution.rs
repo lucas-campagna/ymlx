@@ -1,6 +1,7 @@
 use ymx::*;
-use ymx::component::*;
-use crate::fixtures::*;
+use std::collections::HashMap;
+mod fixtures;
+use fixtures::*;
 
 #[cfg(test)]
 mod property_substitution_tests {

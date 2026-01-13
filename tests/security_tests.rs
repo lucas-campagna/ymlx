@@ -1,6 +1,7 @@
 use ymx::*;
 use ymx::component::*;
-use crate::fixtures::*;
+mod fixtures;
+use fixtures::*;
 
 #[cfg(test)]
 mod security_tests {

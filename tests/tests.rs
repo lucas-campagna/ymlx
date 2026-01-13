@@ -1,6 +1,5 @@
 // Simplified tests that don't require complex module imports
 use ymx::*;
-use ymx::component::*;
 use std::collections::HashMap;
 
 // Test fixtures
@@ -488,13 +487,33 @@ emoji_key: value5
 
     #[test]
     fn test_component_name_uniqueness() {
+        // Test with valid YAML - different component names
         let yaml_content = r#"
-component: First component
-component: Second component
-component: Third component
+component1: First component
+component2: Second component
+component3: Third component
 "#;
         
         let result = parse_yaml_content(yaml_content);
+        assert!(result.is_ok());
+        let components = result.unwrap();
+        
+        // Should have three unique components
+        assert_eq!(components.len(), 3);
+        
+        // Check that each has unique name
+        let names: Vec<String> = components.iter().map(|c| c.name.clone()).collect();
+        assert!(names.contains(&"component1".to_string()));
+        assert!(names.contains(&"component2".to_string()));
+        assert!(names.contains(&"component3".to_string()));
+        
+        // Check values
+        match &components[2].value {
+            ComponentValue::Literal(s) => {
+                assert_eq!(s, "Third component");
+            },
+            _ => panic!("Expected Literal component value"),
+        }
         assert!(result.is_ok());
         let components = result.unwrap();
         

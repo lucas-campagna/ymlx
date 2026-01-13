@@ -1,7 +1,5 @@
 use ymx::*;
 
-use crate::fixtures::*;
-
 #[cfg(test)]
 mod edge_case_tests {
     use super::*;
@@ -171,7 +169,7 @@ duplicate: second
 "#, "duplicate keys"),
         ];
         
-        for (content, description) in invalid_cases {
+        for (content, _description) in invalid_cases {
             let result = parse_yaml_content(content);
             // YAML parser might handle some of these gracefully
             // Test doesn't assert error, just ensures no panic
@@ -710,7 +708,7 @@ deeply_nested:
     #[test]
     fn test_memory_usage_with_large_yaml() {
         // Test that large YAML doesn't cause memory issues
-        for iteration in 0..10 {
+        for _iteration in 0..10 {
             let mut content = String::new();
             for i in 0..1000 {
                 content.push_str(&format!("component_{}: {}\n", i, "x".repeat(1000)));

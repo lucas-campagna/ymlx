@@ -1,8 +1,5 @@
 use ymx::*;
 
-// Test fixtures and utilities
-use crate::fixtures::*;
-
 #[cfg(test)]
 mod core_parser_tests {
     use super::*;

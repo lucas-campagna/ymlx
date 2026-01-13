@@ -1,6 +1,8 @@
 use ymx::*;
 use ymx::component::*;
-use crate::fixtures::*;
+use std::collections::HashMap;
+mod fixtures;
+use fixtures::*;
 
 #[cfg(test)]
 mod component_execution_tests {
@@ -401,8 +403,9 @@ mod component_execution_tests {
         
         let result = execute_component(&component, &context);
         assert!(result.is_ok());
-        assert!(result.unwrap().contains('\n'));
-        assert_eq!(result.unwrap().lines().count(), 3);
+        let unwrapped = result.unwrap();
+        assert!(unwrapped.contains('\n'));
+        assert_eq!(unwrapped.lines().count(), 3);
     }
 
     #[test]
@@ -639,8 +642,9 @@ mod component_execution_tests {
         
         let result = execute_component(&component, &context);
         assert!(result.is_ok());
-        assert!(result.unwrap().contains('\n'));
-        assert_eq!(result.unwrap().lines().count(), 3);
+        let unwrapped = result.unwrap();
+        assert!(unwrapped.contains('\n'));
+        assert_eq!(unwrapped.lines().count(), 3);
     }
 
     #[test]

@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 use std::collections::HashMap;
 use ymx::*;
-use ymx::component::*;
-use crate::fixtures::*;
+mod fixtures;
+use fixtures::*;
 
 #[cfg(test)]
 mod performance_tests {
@@ -215,7 +215,7 @@ mod performance_tests {
         let initial_memory = estimate_memory_usage(&());
         
         // Parse and immediately drop many components
-        for i in 0..100 {
+        for _i in 0..100 {
             let content = generate_test_yaml(100);
             let result = parse_yaml_content(&content);
             assert!(result.is_ok());
@@ -461,9 +461,8 @@ mod performance_tests {
     fn test_complex_substitution_performance() {
         let template = format!("Hello $name1! Age: $age1. City: $city1. Status: $status1. Count: $count1. " +
                        "Hello $name2! Age: $age2. City: $city2. Status: $status2. Count: $count2. " +
-                       "Math: ${age1 + age2}. String: ${\"Hello, \" + name1 + \" and \" + name2 + \"!\"}. " +
-                       "Ternary: ${status1 ? \"Active\" : \"Inactive\"}. Array: $items[0].", 
-                       i, i, i, i, i, i, i, i, i, i, i, i, i, i);
+                       "Math: ${{age1 + age2}}. String: ${{\"Hello, \" + name1 + \" and \" + name2 + \"!\"}}. " +
+                       "Ternary: ${{status1 ? \"Active\" : \"Inactive\"}}. Array: $items[0].");
         
         let mut context = HashMap::new();
         context.insert("name1".to_string(), "Alice".to_string());
@@ -509,7 +508,7 @@ expr_{}: ${{1 + {}}}
 call_{}:
   from!: base_{}
   text: Click {}
-"#, i, i, i, i, i, i, i, i, i, i, i, i);
+"#, i, i, i, i, i, i, i, i, i, i);
             
             let result = parse_yaml_content(&content);
             assert!(result.is_ok());

@@ -1,7 +1,8 @@
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen_test::*;
-use ymx::*;
-use crate::fixtures::*;
+use wasm_bindgen_test::wasm_bindgen_test;
+use ymx::YMXProcessor;
+mod fixtures;
+use fixtures::*;
 
 #[cfg(test)]
 mod wasm_tests {

@@ -1,9 +1,7 @@
 use std::process::Command;
 use std::fs;
 use tempfile::TempDir;
-use ymx::*;
-use ymx::component::*;
-use crate::fixtures::*;
+mod fixtures;
 
 #[cfg(test)]
 mod integration_tests {
@@ -546,7 +544,7 @@ shared: Shared component result
         );
         
         // Test rapid consecutive executions
-        for i in 0..10 {
+        for _i in 0..10 {
             let result = run_cli_component("shared", &yaml_file, vec![]);
             assert!(result.is_ok());
             assert!(result.unwrap().contains("Shared component result"));
