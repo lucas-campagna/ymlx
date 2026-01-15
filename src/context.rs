@@ -16,9 +16,18 @@ impl Deref for Context {
 
 impl Context {
     pub fn build(index_map: IndexMap<String, Value>) -> Context {
+        let regex = regex::Regex::new(r"\$\{(\w+)}").unwrap();
         Context(
             index_map
                 .into_iter()
+                .map(|(name, value)| {
+                    (
+                        regex
+                            .replace_all(&name, |caps: &regex::Captures| format!("${}", &caps[1]))
+                            .to_string(),
+                        value,
+                    )
+                })
                 .map(|(name, mut value)| {
                     if let (name, Some(from)) = utils::extract_call_from_name(&name) {
                         value = match value {
