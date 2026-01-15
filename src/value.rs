@@ -365,6 +365,66 @@ impl From<IndexMap<String, Self>> for Value {
     }
 }
 
+impl From<serde_yaml_ng::Value> for Value {
+    fn from(value: serde_yaml_ng::Value) -> Self {
+        match value {
+            serde_yaml_ng::Value::Null => Value::Null,
+            serde_yaml_ng::Value::Bool(b) => Value::Bool(b),
+            serde_yaml_ng::Value::Number(number) => {
+                if number.is_i64() {
+                    Value::Int(number.as_i64().unwrap())
+                } else if number.is_u64() {
+                    Value::Int(number.as_u64().unwrap() as i64)
+                } else {
+                    Value::Float(number.as_f64().unwrap())
+                }
+            }
+            serde_yaml_ng::Value::String(s) => Value::String(s),
+            serde_yaml_ng::Value::Sequence(values) => {
+                Value::Sequence(values.into_iter().map(|value| Value::from(value)).collect())
+            }
+            serde_yaml_ng::Value::Mapping(mapping) => Value::Mapping(
+                mapping
+                    .into_iter()
+                    .map(|(k, v)| {
+                        (
+                            k.as_str()
+                                .expect("Trying to use a non-string value as key")
+                                .to_string(),
+                            Value::from(v),
+                        )
+                    })
+                    .collect(),
+            ),
+            serde_yaml_ng::Value::Tagged(_) => panic!("Trying to parse tag (invalid)"),
+        }
+    }
+}
+
+impl From<Value> for serde_yaml_ng::Value {
+    fn from(value: Value) -> serde_yaml_ng::Value {
+        match value {
+            Value::Null => serde_yaml_ng::Value::Null,
+            Value::Bool(b) => serde_yaml_ng::Value::from(b),
+            Value::Int(n) => serde_yaml_ng::Value::from(n),
+            Value::Float(n) => serde_yaml_ng::Value::from(n),
+            Value::String(s) => serde_yaml_ng::Value::from(s),
+            Value::Sequence(values) => serde_yaml_ng::Value::Sequence(
+                values
+                    .into_iter()
+                    .map(|value| serde_yaml_ng::Value::from(value))
+                    .collect(),
+            ),
+            Value::Mapping(index_map) => serde_yaml_ng::Value::Mapping(
+                index_map
+                    .into_iter()
+                    .map(|(k, v)| (serde_yaml_ng::Value::from(k), v.into()))
+                    .collect(),
+            ),
+        }
+    }
+}
+
 impl From<Value> for rust_yaml::Value {
     fn from(value: Value) -> Self {
         match value {
