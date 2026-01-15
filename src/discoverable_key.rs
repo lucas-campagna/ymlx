@@ -6,7 +6,7 @@ pub struct DiscoverableKey<'a>(&'a IndexMap<String, Value>);
 
 impl<'a> DiscoverableKey<'a> {
     pub fn get(&self, key: &str) -> Option<&'a Value> {
-        let keys = self.build_keys(key);
+        let keys = Self::build_keys(key);
         assert!(self.0.keys().filter(|k| keys.contains(*k)).count() < 2);
 
         let mut result = None;
@@ -29,7 +29,7 @@ impl<'a> DiscoverableKey<'a> {
             None
         }
     }
-    fn build_keys(&self, key: &str) -> [String; 3] {
+    fn build_keys(key: &str) -> [String; 3] {
         [
             format!("{}!", key),
             (key[0..=0].to_uppercase() + &key[1..]),
@@ -41,5 +41,25 @@ impl<'a> DiscoverableKey<'a> {
 impl<'a> From<&'a IndexMap<String, Value>> for DiscoverableKey<'a> {
     fn from(map: &'a IndexMap<String, Value>) -> Self {
         DiscoverableKey(map)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn build_discoverable_component_names_test() {
+        {
+            let keys = DiscoverableKey::build_keys("from");
+            assert!(keys[0].contains("from!"));
+            assert!(keys[1].contains("From"));
+            assert!(keys[2].contains("yx-from"));
+        }
+        {
+            let keys = DiscoverableKey::build_keys("MyDb");
+            assert!(keys[0].contains("MyDb!"));
+            assert!(keys[1].contains("MyDb"));
+            assert!(keys[2].contains("yx-MyDb"));
+        }
     }
 }

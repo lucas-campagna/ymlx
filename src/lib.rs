@@ -35,24 +35,3 @@ pub enum ParseError {
     #[error("{0}")]
     InvalidYamlMappingKeys(#[from] MapValuesError),
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use discoverable_key::DiscoverableKey;
-    #[test]
-    fn build_discoverable_component_names_test() {
-        {
-            let k = DiscoverableKey("from");
-            assert!(k.matches("from!"));
-            assert!(k.matches("From"));
-            assert!(k.matches("yx-from"));
-        }
-        {
-            let k = DiscoverableKey("MyDb");
-            assert!(k.matches("MyDb!"));
-            assert!(k.matches("MyDb"));
-            assert!(k.matches("yx-MyDb"));
-        }
-    }
-}
