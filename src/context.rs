@@ -70,40 +70,30 @@ impl Context {
         match component {
             Value::Sequence(values) => values.iter_mut().for_each(|v| self.parse_from(v)),
             component => {
-                let value = if let Value::Mapping(index_map) = component {
+                if let Value::Mapping(index_map) = component {
                     index_map.iter_mut().for_each(|(_, value)| {
                         self.parse_from(value);
                     });
-                    let mut result = None;
-                    let from_key = DiscoverableKey("from");
-                    for key in from_key.keys().as_ref() {
-                        if let Some(Value::String(name)) = index_map.swap_remove(key) {
-                            let props = Value::Mapping(index_map.drain(..).collect());
-                            result = Some(self.inner_call(&name, Some(&props)));
-                            break;
+                    if let Some(Value::String(name)) =
+                        DiscoverableKey::from(&*index_map).get("from")
+                    {
+                        let name = name.to_owned();
+                        let props = Value::Mapping(std::mem::take(index_map));
+                        *component = self.inner_call(&name, Some(&props));
+                        return;
+                    }
+                    for name in self.0.keys() {
+                        if let Some(props) = DiscoverableKey::from(&*index_map).get(name) {
+                            *component = self.inner_call(name, Some(props));
+                            return;
                         }
                     }
-                    if result.is_none() {
-                        for name in self.0.keys() {
-                            let discoverable_name = DiscoverableKey(name);
-                            for key in discoverable_name.keys().as_ref() {
-                                if let Some(props) = index_map.get(key) {
-                                    result = Some(self.inner_call(name, Some(props)));
-                                    break;
-                                }
-                            }
-                            if result.is_some() {
-                                break;
-                            }
-                        }
+                }
+                if let Value::String(key) = component {
+                    if let Some(value) = DiscoverableKey::from(&self.0).clear_and_get(key) {
+                        *component = value.clone();
+                        return;
                     }
-                    result
-                } else {
-                    None
-                };
-                if let Some(value) = value {
-                    *component = value;
-                    return;
                 }
             }
         }
