@@ -1,7 +1,13 @@
 [package]
-name = "htymlx"
+name = "ymx"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+serde_json = "1"
 rust-yaml = "0.0.5"
+indexmap = "2.13.0"
+thiserror = "2"
+regex = "1.10.4"
+find-matching-bracket = "0.2.0"
+boa_engine = "0.21.0"
