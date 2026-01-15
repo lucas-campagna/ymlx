@@ -6,14 +6,14 @@ mod value;
 
 use context::Context;
 use regex::Regex;
-use rust_yaml::Yaml;
+use serde_yaml_ng::from_str;
 use thiserror::Error;
 pub use value::Value;
 
 pub fn parse(code: &str) -> Result<Context, ParseError> {
     let re = Regex::new(r"\$(\w+)").unwrap();
     let parsed_code = re.replace_all(code, |caps: &regex::Captures| format!("${{{}}}", &caps[1]));
-    let result = Yaml::new().load_str(&parsed_code)?;
+    let result: serde_yaml_ng::Value = from_str(&parsed_code)?;
     match result.into() {
         Value::Mapping(result) => Ok(Context::build(result)),
         _ => Err(ParseError::InvalidYamlBaseValue),
@@ -29,7 +29,7 @@ pub enum MapValuesError {
 #[derive(Error, Debug)]
 pub enum ParseError {
     #[error("Error while parsing the YAML: {0}")]
-    YamlParsingError(#[from] rust_yaml::Error),
+    YamlParsingError(#[from] serde_yaml_ng::Error),
     #[error("Yaml file should be key-value pair on top level")]
     InvalidYamlBaseValue,
     #[error("{0}")]

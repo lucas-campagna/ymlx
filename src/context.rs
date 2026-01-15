@@ -43,9 +43,9 @@ impl Context {
                 .collect(),
         )
     }
-    pub fn call(&self, name: &str, props: Option<&Value>) -> rust_yaml::Value {
+    pub fn call(&self, name: &str, props: Option<&Value>) -> Value {
         let result = self.inner_call(name, props);
-        rust_yaml::Value::from(result)
+        Value::from(result)
     }
     fn inner_call(&self, name: &str, props: Option<&Value>) -> Value {
         match (self.0.get(name), props) {
@@ -83,8 +83,12 @@ impl Context {
                         return;
                     }
                     for name in self.0.keys() {
-                        if let Some(props) = DiscoverableKey::from(&*index_map).get(name) {
-                            *component = self.inner_call(name, Some(props));
+                        if let Some(body) = DiscoverableKey::from(&*index_map).get(name) {
+                            let body = body.to_owned();
+                            index_map.swap_remove(name);
+                            index_map.insert("body".to_owned(), body);
+                            let props = Value::Mapping(std::mem::take(index_map));
+                            *component = self.inner_call(name, Some(&props));
                             return;
                         }
                     }
