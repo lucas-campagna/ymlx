@@ -14,9 +14,6 @@ pub fn parse(code: &str) -> Result<Context, ParseError> {
     let re = Regex::new(r"\$(\w+)").unwrap();
     let parsed_code = re.replace_all(code, |caps: &regex::Captures| format!("${{{}}}", &caps[1]));
     let result = Yaml::new().load_str(&parsed_code)?;
-    if !result.is_mapping() {
-        return Err(ParseError::InvalidYamlBaseValue);
-    }
     match result.into() {
         Value::Mapping(result) => Ok(Context::build(result)),
         _ => Err(ParseError::InvalidYamlBaseValue),
