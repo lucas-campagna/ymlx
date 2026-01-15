@@ -1,6 +1,5 @@
 use core::fmt;
 use indexmap::IndexMap;
-use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -272,49 +271,6 @@ impl PartialEq for Value {
 }
 
 impl Eq for Value {}
-
-impl Hash for Value {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Self::Null => 0u8.hash(state),
-            Self::Bool(b) => {
-                1u8.hash(state);
-                b.hash(state);
-            }
-            Self::Int(i) => {
-                2u8.hash(state);
-                i.hash(state);
-            }
-            Self::Float(f) => {
-                3u8.hash(state);
-                // Handle NaN and negative zero
-                if f.is_nan() {
-                    u64::MAX.hash(state);
-                } else if *f == 0.0 {
-                    0u64.hash(state);
-                } else {
-                    f.to_bits().hash(state);
-                }
-            }
-            Self::String(s) => {
-                4u8.hash(state);
-                s.hash(state);
-            }
-            Self::Sequence(seq) => {
-                5u8.hash(state);
-                seq.hash(state);
-            }
-            Self::Mapping(map) => {
-                6u8.hash(state);
-                // Hash all key-value pairs
-                for (k, v) in map.iter() {
-                    k.hash(state);
-                    v.hash(state);
-                }
-            }
-        }
-    }
-}
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
