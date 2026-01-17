@@ -2,7 +2,6 @@ mod context;
 mod discoverable_key;
 mod merge;
 mod processing_context;
-mod utils;
 mod value;
 
 use context::Context;
