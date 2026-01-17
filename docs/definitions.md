@@ -95,7 +95,8 @@ fn sql(args: Props) -> Vec[String] {
 ```
 
 ```yml
-sql(fn):
+sql:
+  from!: sql
   lib: /path/to/lib.dll
   args:
     - query
@@ -137,73 +138,81 @@ comp:
   action: onclick="alert("clicked!")"
 ```
 
-9. Call to components can be simplified in the caller component name by using the caller betewen brackets `()`.
+<!-- 9. Call to components can be simplified in the caller component name by using the caller betewen brackets `()`. -->
+<!---->
+<!-- Example: The last example can be written as -->
+<!---->
+<!-- ```yml -->
+<!-- div: <div>$body</div> -->
+<!-- comp(div): Hello World! -->
+<!-- ``` -->
 
-Example: The last example can be written as
-
-```yml
-div: <div>$body</div>
-comp(div): Hello World!
-```
-
-5. In order to hide implementation details components can have templates by just creating components with the same name but starting with `$`. Template are just a last component call component.
-
-Example: The last example can be rewritten using templates
-
-```yml
-$comp: <div>$body</div>
-comp: Hello World!
-```
-
-10. You can define generic components using RegEx just by starting the name with `~`
-
-> Before calling the component itself a first call is performed to replace `$name` with the component name.
+9. You can merge components by appending a component name between brackets `(` and `)` to the end of the component name.
 
 Example:
 
 ```yml
-~\$(a|b)c: "$name: $value"
-ac: foo
-bc: bar
-app:
-  - ac!
-  - bc!
 ```
-
-Here we are defining the template components `$ac` and `$bc`. Calling `app` we get `["$ac: foo", "$bc: bar"]`.
-
-10. Property substitution follow the expected usage of the value in the component
-
-Example:
-
-```yaml
-comp: $prop
-```
-
-- Calling `comp` with `prop` as 'Hello World', you obtain the string 'Hello World'.
-- Calling it with `{"a": 1}`, you get the object `{"a": 1}`
-- Calling with sequence, you get a sequence
-
-11. You can merge objects with the key `..`
-
-Example:
-
-```yml
-comp:
+comp_c:
+  c: 3
+comp_b:
+  b: 1
+  c: 10
+comp_a(comp_b,comp_c):
   a: 1
-  ..: $prop
-```
+  b: 2
 
-Calling `comp` with `prop` as `{"b": 2}`, you get `{"a": 1, "b": 2}`, otherwise you get an object with key `".."` and value as the one from `props`
+Because both `comp_a`, `comp_b` and `comp_c` are objects, the merging result is the [`assing`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign) of `comp_a` into `comp_b`, which produces `{"a": 1, "b":2, "c": 10}`, then the result into `comp_c` which produces `{"a": 1, "b": 2, "c": 3}`.
 
-The same applies for sequences, you just need to pre-append the variable with `..`:
+> TODO: needs explain how do merging is for different types
+
+10. You can hide implementation details by creating template components. The template of a component is a component with the same name as it's derived component but starting with a `$`. The template component is append to the derived component merging list.
 
 Example:
 
+Doing this
+
 ```yml
-comp:
-  - 1
-  - ..$prop
+$app:
+  age: ${2026 - year_of_birth}
+app:
+  name: $name
 ```
 
-Calling `comp` with `[2,3]` you get `[1, 2, 3]`. The other valid value is string, you get the concatenation of `".."` with the string from `prop`. Otherwise you get an error.
+
+Is the same as doing this:
+
+```yml
+comp:
+  age: ${2026 - year_of_birth}
+app(comp):
+  name: $name
+```
+```
+
+
+!-- # Mapping -->
+<!-- b: -->
+<!--   - ${x + y} -->
+<!--   - ${x * y} -->
+<!---->
+<!-- a(b): -->
+<!--   x: 1 -->
+<!--   y: 2 -->
+<!---->
+<!-- #a -> ["1 + 2", "1 * 2"] -->
+<!---->
+<!-- --- -->
+<!-- # Reducing -->
+<!-- b: -->
+<!--   x: 1 -->
+<!--   y: 2 -->
+<!---->
+<!-- a(b): -->
+<!--   - ${x + y} -->
+<!--   - z: $default -->
+<!--     x: $default + 1 # 3 + 1 -->
+<!--   - ${z + (x * y)} -->
+<!---->
+<!-- # a -> (1 + 2) + (4 * 2) -->
+

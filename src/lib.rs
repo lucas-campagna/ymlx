@@ -1,19 +1,17 @@
 mod context;
 mod discoverable_key;
+mod merge;
 mod processing_context;
 mod utils;
 mod value;
 
 use context::Context;
-use regex::Regex;
 use serde_yaml_ng::from_str;
 use thiserror::Error;
 pub use value::Value;
 
 pub fn parse(code: &str) -> Result<Context, ParseError> {
-    let re = Regex::new(r"\$(\w+)").unwrap();
-    let parsed_code = re.replace_all(code, |caps: &regex::Captures| format!("${{{}}}", &caps[1]));
-    let result: serde_yaml_ng::Value = from_str(&parsed_code)?;
+    let result: serde_yaml_ng::Value = from_str(&code)?;
     match result.into() {
         Value::Mapping(result) => Ok(Context::build(result)),
         _ => Err(ParseError::InvalidYamlBaseValue),

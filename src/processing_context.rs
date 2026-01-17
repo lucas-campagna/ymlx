@@ -53,25 +53,32 @@ impl<'a, 'b> ProcessingContextCode<'a, 'b> {
 #[derive(Default)]
 pub struct ProcessingContext(boa_engine::Context);
 
-impl From<&Context> for ProcessingContext {
-    fn from(value: &Context) -> Self {
+impl From<&Option<&Context>> for ProcessingContext {
+    fn from(value: &Option<&Context>) -> Self {
         let mut context = boa_engine::Context::default();
-        for (key, value) in value.deref() {
-            context
-                .register_global_property(
-                    js_string!(key.to_string()),
-                    value.clone(),
-                    Attribute::READONLY,
-                )
-                .unwrap();
+        if let Some(value) = value {
+            #[allow(suspicious_double_ref_op)]
+            for (key, value) in value.deref().deref() {
+                context
+                    .register_global_property(
+                        js_string!(key.to_string()),
+                        value.clone(),
+                        Attribute::READONLY,
+                    )
+                    .unwrap();
+            }
         }
         ProcessingContext(context)
     }
 }
 
 impl ProcessingContext {
-    pub fn parse(&mut self, text: &String) -> Value {
-        let mut processing_contexts = find_processing_contexts(text);
+    pub fn parse(&mut self, text: &str) -> Value {
+        let re = regex::Regex::new(r"\$(\w+)").unwrap();
+        let text = re
+            .replace_all(text, |cap: &regex::Captures| format!("${{{:}}}", &cap[1]))
+            .to_string();
+        let mut processing_contexts = find_processing_contexts(&text);
         let is_processing_context_only = processing_contexts.len() == 1
             && *text == format!("${{{:}}}", processing_contexts[0].code); // ignoring "}"
         if is_processing_context_only {
@@ -80,7 +87,7 @@ impl ProcessingContext {
             item.eval();
             Value::from(item.result.unwrap())
         } else {
-            let mut result = text.clone();
+            let mut result = text.to_owned();
             for mut item in processing_contexts.into_iter().rev() {
                 item.bind(&mut self.0);
                 item.eval();
@@ -92,7 +99,7 @@ impl ProcessingContext {
     pub fn bind(&mut self, value: &Value) {
         let map = match value.clone() {
             values if values.is_mapping() => values,
-            value => Value::mapping_with(Vec::from([("body".to_string(), value)])),
+            value => Value::force_mapping(value),
         }
         .as_mapping()
         .unwrap()

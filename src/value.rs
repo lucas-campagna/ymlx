@@ -1,5 +1,8 @@
 use core::fmt;
+
 use indexmap::IndexMap;
+
+use crate::{context::Context, processing_context};
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -10,8 +13,15 @@ pub enum Value {
     String(String),
     Sequence(Vec<Value>),
     Mapping(IndexMap<String, Value>),
+    LazyEval(LazyEval),
     // Function(fn(Value) -> Value),
     // Generic(Regex),
+}
+
+#[derive(Debug, Clone)]
+pub struct LazyEval {
+    pub code: String,
+    pub props: IndexMap<String, Value>,
 }
 
 impl Value {
@@ -74,6 +84,7 @@ impl Value {
             Self::String(_) => "string",
             Self::Sequence(_) => "sequence",
             Self::Mapping(_) => "mapping",
+            Self::LazyEval(_) => "lazy_eval",
         }
     }
 
@@ -115,6 +126,11 @@ impl Value {
     /// Check if this value is a number (int or float)
     pub const fn is_number(&self) -> bool {
         matches!(self, Self::Int(_) | Self::Float(_))
+    }
+
+    /// Check if this value is a LazyEval
+    pub const fn is_lazy_eval(&self) -> bool {
+        matches!(self, Self::LazyEval(_))
     }
 
     /// Get the length of sequences and mappings, None for scalars
@@ -201,6 +217,22 @@ impl Value {
         }
     }
 
+    /// Get this value as a mapping reference, if possible
+    pub const fn as_lazy_eval(&self) -> Option<&LazyEval> {
+        match self {
+            Self::LazyEval(lazy_eval) => Some(lazy_eval),
+            _ => None,
+        }
+    }
+
+    /// Get this value as a mutable mapping reference, if possible
+    pub const fn as_lazy_eval_mut(&mut self) -> Option<&mut LazyEval> {
+        match self {
+            Self::LazyEval(lazy_eval) => Some(lazy_eval),
+            _ => None,
+        }
+    }
+
     /// Index into a sequence or mapping
     pub fn get(&self, index: &Self) -> Option<&Self> {
         match (self, index) {
@@ -246,31 +278,99 @@ impl Value {
             _ => None,
         }
     }
-}
 
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Value::Null, Value::Null) => true,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Int(a), Value::Int(b)) => a == b,
-            (Value::Float(a), Value::Float(b)) => {
-                // Special handling for NaN - all NaN values are considered equal for consistency with Hash
-                if a.is_nan() && b.is_nan() {
-                    true
-                } else {
-                    a == b
+    /// Force value to mapping
+    pub fn force_mapping(value: Value) -> Value {
+        match value {
+            value if value.is_mapping() => value,
+            value => {
+                let mut index_map = IndexMap::new();
+                index_map.insert("body".to_string(), value);
+                Value::Mapping(index_map)
+            }
+        }
+    }
+
+    /// Merges two values
+    pub fn extend(&mut self, value: Value) {
+        match (self, value) {
+            (Value::Mapping(target), Value::Mapping(value)) => {
+                for (key, value) in value {
+                    if let Some(target_value) = target.get_mut(&key) {
+                        target_value.extend(value);
+                    } else {
+                        target.insert(key, value);
+                    }
                 }
             }
-            (Value::String(a), Value::String(b)) => a == b,
-            (Value::Sequence(a), Value::Sequence(b)) => a == b,
-            (Value::Mapping(a), Value::Mapping(b)) => a == b,
-            _ => false,
+            (Value::Sequence(target), Value::Sequence(value)) => target.extend(value),
+            (Value::Sequence(target), value) => target
+                .into_iter()
+                .for_each(|target| target.extend(value.clone())),
+            (target, Value::Sequence(value)) => {
+                value.into_iter().for_each(|value| target.extend(value))
+            }
+            (target, value) => {
+                if target.is_string() {
+                    *target = Value::from(LazyEval {
+                        code: target.as_str().unwrap().to_owned(),
+                        props: Value::force_mapping(value).as_mapping().unwrap().to_owned(),
+                    });
+                } else if value.is_string() {
+                    *target = Value::from(LazyEval {
+                        code: value.as_str().unwrap().to_owned(),
+                        props: Value::force_mapping(target.to_owned())
+                            .as_mapping()
+                            .unwrap()
+                            .to_owned(),
+                    });
+                } else if target.is_mapping() {
+                    target.extend(Value::force_mapping(value));
+                } else if value.is_mapping() {
+                    *target = Value::force_mapping(target.clone());
+                    target.extend(value);
+                }
+            }
         }
+    }
+
+    pub fn apply(&mut self, source: &Value, context: &Option<&Context>) {
+        println!("Apply {:?}  with  {:?}", self, source);
+        match self {
+            Value::Sequence(values) => {
+                for component in values {
+                    component.apply(source, context);
+                }
+            }
+            component if component.is_mapping() || component.is_lazy_eval() => {
+                if let Some(LazyEval { code, props }) = component.as_lazy_eval_mut() {
+                    for p in props.values_mut() {
+                        p.apply(source, context);
+                    }
+                    *component = process_context_code(code, &props.clone().into(), context);
+                } else {
+                    let index_map = component.as_mapping_mut().unwrap();
+                    for component in index_map.values_mut() {
+                        component.apply(source, context);
+                    }
+                }
+                println!("Apply result {:?}", component);
+            }
+            component if component.is_string() => {
+                let text = component.as_str().unwrap();
+                *component = process_context_code(text, source, context);
+                println!("Apply result {:?}", component);
+            }
+            _ => {}
+        };
     }
 }
 
-impl Eq for Value {}
+fn process_context_code(code: &str, props: &Value, context: &Option<&Context>) -> Value {
+    let mut pc = processing_context::ProcessingContext::from(context);
+    pc.bind(props);
+    pc.parse(code)
+}
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -300,6 +400,7 @@ impl fmt::Display for Value {
                 }
                 write!(f, "}}")
             }
+            _ => Ok(()),
         }
     }
 }
@@ -365,6 +466,12 @@ impl From<IndexMap<String, Self>> for Value {
     }
 }
 
+impl From<LazyEval> for Value {
+    fn from(lazy_eval: LazyEval) -> Self {
+        Self::LazyEval(lazy_eval)
+    }
+}
+
 impl From<serde_yaml_ng::Value> for Value {
     fn from(value: serde_yaml_ng::Value) -> Self {
         match value {
@@ -421,6 +528,7 @@ impl From<Value> for serde_yaml_ng::Value {
                     .map(|(k, v)| (serde_yaml_ng::Value::from(k), v.into()))
                     .collect(),
             ),
+            _ => serde_yaml_ng::Value::Null,
         }
     }
 }
@@ -445,6 +553,7 @@ impl From<Value> for rust_yaml::Value {
                     .map(|(k, v)| (rust_yaml::Value::String(k), rust_yaml::Value::from(v)))
                     .collect(),
             ),
+            _ => rust_yaml::Value::Null,
         }
     }
 }
@@ -520,6 +629,7 @@ impl From<Value> for boa_engine::JsValue {
                 boa_engine::JsValue::from_json(&json, &mut context)
                     .expect("Error while parsing array")
             }
+            _ => boa_engine::JsValue::null(),
         }
     }
 }
@@ -602,6 +712,7 @@ impl From<Value> for serde_json::Value {
                     .map(|(k, v)| (k, serde_json::Value::from(v)))
                     .collect(),
             ),
+            _ => serde_json::Value::Null,
         }
     }
 }
